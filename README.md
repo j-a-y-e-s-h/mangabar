@@ -2,8 +2,6 @@
 
 A native integration of **Suwayomi-Server** (the desktop/server engine for Tachiyomi/Mihon) inside **Antigravity IDE**. Read manga, manhwa, and comics directly in your editor or sidebar with zero context switching.
 
-![Mihon](media/mihon.svg)
-
 ---
 
 ## ✨ Features

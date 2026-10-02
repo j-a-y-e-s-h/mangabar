@@ -2,11 +2,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 import * as http from 'http';
+import * as child_process from 'child_process';
 import { URL } from 'url';
 
 export const SERVER_VERSION = 'v2.4.2366';
 export const JAR_FILENAME = `Suwayomi-Server-${SERVER_VERSION}.jar`;
 export const DOWNLOAD_URL = `https://github.com/Suwayomi/Suwayomi-Server/releases/download/${SERVER_VERSION}/${JAR_FILENAME}`;
+export const ADOPTIUM_JRE21_URL =
+  'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_windows_hotspot_21.0.12.1_1.zip';
 
 export function getBinDirectory(extensionRoot: string): string {
   const binDir = path.join(extensionRoot, 'bin');
@@ -16,18 +19,166 @@ export function getBinDirectory(extensionRoot: string): string {
   return binDir;
 }
 
-export function getServerJarPath(extensionRoot: string): string {
-  return path.join(getBinDirectory(extensionRoot), JAR_FILENAME);
+export function getServerJarPath(extensionRoot: string, workspaceRoot?: string): string {
+  // Check extension root bin first
+  const extJar = path.join(extensionRoot, 'bin', JAR_FILENAME);
+  if (fs.existsSync(extJar) && fs.statSync(extJar).size > 150 * 1024 * 1024) {
+    return extJar;
+  }
+  // Check workspace root bin
+  if (workspaceRoot) {
+    const wsJar = path.join(workspaceRoot, 'bin', JAR_FILENAME);
+    if (fs.existsSync(wsJar) && fs.statSync(wsJar).size > 150 * 1024 * 1024) {
+      return wsJar;
+    }
+  }
+  return extJar;
 }
 
-export function isServerJarInstalled(extensionRoot: string): boolean {
-  const jarPath = getServerJarPath(extensionRoot);
+export function isServerJarInstalled(extensionRoot: string, workspaceRoot?: string): boolean {
+  const jarPath = getServerJarPath(extensionRoot, workspaceRoot);
   if (!fs.existsSync(jarPath)) {
     return false;
   }
   const stat = fs.statSync(jarPath);
-  // Official jar is ~182 MB (around 170-190 MB). A valid download must be at least 150 MB.
   return stat.size > 150 * 1024 * 1024;
+}
+
+/**
+ * On Windows, paths containing spaces can break ClassGraph inside fat JARs.
+ * Converting to an 8.3 short path resolves this reliably.
+ */
+export function toSafePath(targetPath: string): string {
+  if (process.platform !== 'win32' || !targetPath.includes(' ') || !fs.existsSync(targetPath)) {
+    return targetPath;
+  }
+  try {
+    const isDir = fs.statSync(targetPath).isDirectory();
+    const comMethod = isDir ? 'GetFolder' : 'GetFile';
+    const escaped = targetPath.replace(/'/g, "''");
+    const cmd = `powershell -NoProfile -Command "(New-Object -ComObject Scripting.FileSystemObject).${comMethod}('${escaped}').ShortPath"`;
+    const shortPath = child_process.execSync(cmd, { windowsHide: true }).toString().trim();
+    if (shortPath && fs.existsSync(shortPath)) {
+      return shortPath;
+    }
+  } catch {
+    // fallback to original path
+  }
+  return targetPath;
+}
+
+export function checkJavaVersion(javaExecutable: string): number | null {
+  try {
+    const res = child_process.spawnSync(javaExecutable, ['-version'], { windowsHide: true });
+    const output = (res.stderr?.toString() || '') + (res.stdout?.toString() || '');
+    // Regex matches e.g. 'openjdk version "21.0.12"' or 'java version "17.0.1"'
+    const match = output.match(/version "(?:1\.)?(\d+)/);
+    if (match && match[1]) {
+      return parseInt(match[1], 10);
+    }
+  } catch {
+    // not executable
+  }
+  return null;
+}
+
+export function findLocalJreExecutable(extensionRoot: string, workspaceRoot?: string): string | null {
+  const exeName = process.platform === 'win32' ? 'java.exe' : 'java';
+  const candidates = [
+    path.join(extensionRoot, 'bin', 'jre', 'bin', exeName),
+    path.join(extensionRoot, 'jre', 'bin', exeName),
+  ];
+  if (workspaceRoot) {
+    candidates.push(path.join(workspaceRoot, 'bin', 'jre', 'bin', exeName));
+    candidates.push(path.join(workspaceRoot, 'jre', 'bin', exeName));
+  }
+
+  for (const cand of candidates) {
+    if (fs.existsSync(cand)) {
+      const ver = checkJavaVersion(cand);
+      if (ver && ver >= 21) {
+        return cand;
+      }
+    }
+  }
+  return null;
+}
+
+export async function resolveJavaExecutable(
+  extensionRoot: string,
+  workspaceRoot?: string,
+  onProgress?: (percent: number, downloadedMB: string, totalMB: string) => void
+): Promise<string> {
+  // 1. Check portable bundled JRE in extension or workspace
+  const localJre = findLocalJreExecutable(extensionRoot, workspaceRoot);
+  if (localJre) {
+    return localJre;
+  }
+
+  // 2. Check JAVA_HOME
+  if (process.env.JAVA_HOME) {
+    const javaHomeExe = path.join(
+      process.env.JAVA_HOME,
+      'bin',
+      process.platform === 'win32' ? 'java.exe' : 'java'
+    );
+    if (fs.existsSync(javaHomeExe)) {
+      const ver = checkJavaVersion(javaHomeExe);
+      if (ver && ver >= 21) {
+        return javaHomeExe;
+      }
+    }
+  }
+
+  // 3. Check system PATH 'java'
+  const sysVer = checkJavaVersion('java');
+  if (sysVer && sysVer >= 21) {
+    return 'java';
+  }
+
+  // 4. If on Windows and Java 21 is missing, download portable Adoptium JRE 21 into extensionRoot/bin/jre
+  if (process.platform === 'win32') {
+    const binDir = getBinDirectory(extensionRoot);
+    const zipPath = path.join(binDir, 'jre21.zip');
+    const jreTarget = path.join(binDir, 'jre');
+
+    await downloadFileWithRedirects(ADOPTIUM_JRE21_URL, zipPath, (downloaded, total) => {
+      if (onProgress && total > 0) {
+        const percent = Math.min(100, Math.round((downloaded / total) * 100));
+        const downMB = (downloaded / (1024 * 1024)).toFixed(1);
+        const totMB = (total / (1024 * 1024)).toFixed(1);
+        onProgress(percent, downMB, totMB);
+      }
+    });
+
+    // Extract zip via PowerShell
+    child_process.execSync(
+      `powershell -NoProfile -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${binDir}' -Force"`,
+      { windowsHide: true }
+    );
+
+    // Locate extracted directory and rename to 'jre'
+    const items = fs.readdirSync(binDir);
+    const extractedDir = items.find((i) => i.startsWith('jdk-21') || i.startsWith('jre-21'));
+    if (extractedDir) {
+      const srcPath = path.join(binDir, extractedDir);
+      if (fs.existsSync(jreTarget)) {
+        fs.rmSync(jreTarget, { recursive: true, force: true });
+      }
+      fs.renameSync(srcPath, jreTarget);
+    }
+    if (fs.existsSync(zipPath)) {
+      fs.unlinkSync(zipPath);
+    }
+
+    const jreExe = path.join(jreTarget, 'bin', 'java.exe');
+    if (fs.existsSync(jreExe)) {
+      return jreExe;
+    }
+  }
+
+  // Fallback to system java command
+  return 'java';
 }
 
 export async function downloadFileWithRedirects(
@@ -47,7 +198,7 @@ export async function downloadFileWithRedirects(
   return new Promise<void>((resolve, reject) => {
     function get(currentUrl: string, redirectCount = 0) {
       if (redirectCount > 10) {
-        return reject(new Error('Too many redirects while downloading Suwayomi-Server.'));
+        return reject(new Error('Too many redirects while downloading file.'));
       }
 
       const parsedUrl = new URL(currentUrl);
@@ -61,10 +212,9 @@ export async function downloadFileWithRedirects(
           },
         },
         (res) => {
-          // Follow HTTP redirects (301, 302, 307, 308)
           if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
             const redirectUrl = new URL(res.headers.location, currentUrl).toString();
-            res.resume(); // consume response data to free up memory
+            res.resume();
             return get(redirectUrl, redirectCount + 1);
           }
 
@@ -93,7 +243,6 @@ export async function downloadFileWithRedirects(
                 return reject(err);
               }
               try {
-                // Rename temp file to final destination atomically
                 if (fs.existsSync(destPath)) {
                   fs.unlinkSync(destPath);
                 }
@@ -136,11 +285,12 @@ export async function downloadFileWithRedirects(
 
 export async function ensureServerJar(
   extensionRoot: string,
+  workspaceRoot?: string,
   onProgress?: (percent: number, downloadedMB: string, totalMB: string) => void
 ): Promise<string> {
-  const jarPath = getServerJarPath(extensionRoot);
+  const jarPath = getServerJarPath(extensionRoot, workspaceRoot);
 
-  if (isServerJarInstalled(extensionRoot)) {
+  if (isServerJarInstalled(extensionRoot, workspaceRoot)) {
     return jarPath;
   }
 

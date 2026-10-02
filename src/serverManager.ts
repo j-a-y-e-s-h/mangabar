@@ -3,7 +3,13 @@ import * as child_process from 'child_process';
 import * as http from 'http';
 import * as net from 'net';
 import { ConfigManager } from './configManager';
-import { getServerJarPath, isServerJarInstalled, ensureServerJar } from './installer';
+import {
+  getServerJarPath,
+  isServerJarInstalled,
+  ensureServerJar,
+  resolveJavaExecutable,
+  toSafePath,
+} from './installer';
 
 export type ServerState = 'STOPPED' | 'STARTING' | 'RUNNING' | 'ERROR';
 
@@ -41,7 +47,8 @@ export class ServerManager {
 
   private async isPortAvailable(port: number): Promise<boolean> {
     return new Promise((resolve) => {
-      const tester = net.createServer()
+      const tester = net
+        .createServer()
         .once('error', () => resolve(false))
         .once('listening', () => {
           tester.once('close', () => resolve(true)).close();
@@ -67,9 +74,10 @@ export class ServerManager {
     }
 
     const extensionRoot = this.context.extensionPath;
+    const workspaceRoot = this.configManager.getWorkspaceRoot();
 
     // Check if server jar exists
-    if (!isServerJarInstalled(extensionRoot)) {
+    if (!isServerJarInstalled(extensionRoot, workspaceRoot)) {
       this.setState('STARTING');
       this.outputChannel.appendLine('[Mihon] Server binary missing. Starting download...');
       try {
@@ -81,7 +89,7 @@ export class ServerManager {
           },
           async (progress) => {
             let lastPercent = 0;
-            await ensureServerJar(extensionRoot, (percent, downMB, totalMB) => {
+            await ensureServerJar(extensionRoot, workspaceRoot, (percent, downMB, totalMB) => {
               const increment = percent - lastPercent;
               lastPercent = percent;
               progress.report({
@@ -100,7 +108,19 @@ export class ServerManager {
       }
     }
 
-    const jarPath = getServerJarPath(extensionRoot);
+    // Resolve Java 21+ executable (bundled portable or system)
+    let javaCmd = 'java';
+    try {
+      javaCmd = await resolveJavaExecutable(extensionRoot, workspaceRoot, (percent, downMB, totalMB) => {
+        this.outputChannel.appendLine(`[Mihon] Downloading Java runtime: ${downMB}/${totalMB} MB (${percent}%)`);
+      });
+      this.outputChannel.appendLine(`[Mihon] Using Java runtime: ${javaCmd}`);
+    } catch (javaErr: any) {
+      this.outputChannel.appendLine(`[Mihon] Java resolution notice: ${javaErr.message}`);
+    }
+
+    const rawJarPath = getServerJarPath(extensionRoot, workspaceRoot);
+    const jarPath = toSafePath(rawJarPath);
 
     // Resolve port
     const defaultPort = this.configManager.getConfiguredPort();
@@ -118,7 +138,9 @@ export class ServerManager {
     }
 
     // Prepare data directory and config
-    const dataDir = this.configManager.prepareDataDirectory(this.currentPort);
+    const rawDataDir = this.configManager.prepareDataDirectory(this.currentPort);
+    const dataDir = toSafePath(rawDataDir);
+
     this.outputChannel.appendLine(`[Mihon] Starting server on port ${this.currentPort}...`);
     this.outputChannel.appendLine(`[Mihon] Data directory: ${dataDir}`);
 
@@ -132,8 +154,8 @@ export class ServerManager {
     ];
 
     try {
-      this.childProcess = child_process.spawn('java', javaArgs, {
-        cwd: this.configManager.getWorkspaceRoot(),
+      this.childProcess = child_process.spawn(javaCmd, javaArgs, {
+        cwd: toSafePath(workspaceRoot),
         windowsHide: true,
       });
 
@@ -159,7 +181,7 @@ export class ServerManager {
         this.outputChannel.appendLine(`[Mihon] Process spawn error: ${err.message}`);
         this.setState('ERROR');
         vscode.window.showErrorMessage(
-          `Failed to launch Java Suwayomi Server. Ensure Java 17 is installed. Error: ${err.message}`
+          `Failed to launch Java Suwayomi Server. Error: ${err.message}`
         );
       });
     } catch (err: any) {
@@ -168,15 +190,15 @@ export class ServerManager {
       return false;
     }
 
-    // Healthcheck polling
-    const ready = await this.pollHealthcheck(45000);
+    // Healthcheck polling (up to 90s to allow WebUI unpack on first run)
+    const ready = await this.pollHealthcheck(90000);
     if (ready) {
       this.setState('RUNNING');
       this.outputChannel.appendLine(`[Mihon] Server is READY at ${this.getServerUrl()}`);
       return true;
     } else {
       this.setState('ERROR');
-      this.outputChannel.appendLine(`[Mihon] Server failed to respond to healthcheck within 45s.`);
+      this.outputChannel.appendLine(`[Mihon] Server failed to respond to healthcheck within timeout.`);
       vscode.window.showErrorMessage('Suwayomi Server failed to become responsive within timeout.');
       return false;
     }

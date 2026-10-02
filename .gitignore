@@ -2,5 +2,5 @@ node_modules/
 dist/
 *.vsix
 data/
-bin/*.jar
+bin/
 .antigravity/
