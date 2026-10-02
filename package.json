@@ -1,0 +1,137 @@
+{
+  "name": "antigravity-mihon",
+  "displayName": "Mihon Reader",
+  "description": "Seamlessly read manga in Antigravity IDE with embedded Mihon / Suwayomi WebUI and automated server lifecycle management.",
+  "version": "0.1.0",
+  "publisher": "local-developer",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onView:mihon.sidebarView",
+    "onCommand:mihon.openReader",
+    "onCommand:mihon.startServer"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mihon-sidebar",
+          "title": "Mihon",
+          "icon": "media/mihon.svg"
+        }
+      ]
+    },
+    "views": {
+      "mihon-sidebar": [
+        {
+          "type": "webview",
+          "id": "mihon.sidebarView",
+          "name": "Mihon"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "mihon.openReader",
+        "title": "Open Full Reader",
+        "category": "Mihon",
+        "icon": "$(screen-full)"
+      },
+      {
+        "command": "mihon.startServer",
+        "title": "Start Server",
+        "category": "Mihon",
+        "icon": "$(play)"
+      },
+      {
+        "command": "mihon.stopServer",
+        "title": "Stop Server",
+        "category": "Mihon",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "mihon.restartServer",
+        "title": "Restart Server",
+        "category": "Mihon",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "mihon.configureStorage",
+        "title": "Change Storage Location",
+        "category": "Mihon",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "mihon.openWebBrowser",
+        "title": "Open in External Browser",
+        "category": "Mihon",
+        "icon": "$(globe)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "mihon.openReader",
+          "when": "view == mihon.sidebarView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "mihon.restartServer",
+          "when": "view == mihon.sidebarView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "mihon.stopServer",
+          "when": "view == mihon.sidebarView",
+          "group": "navigation@3"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Mihon",
+      "properties": {
+        "mihon.serverPort": {
+          "type": "number",
+          "default": 4567,
+          "description": "Port for Suwayomi-Server (defaults to 4567 with auto fallback)"
+        },
+        "mihon.dataDirectory": {
+          "type": "string",
+          "default": "./data",
+          "description": "Directory where Suwayomi stores library, database, and settings"
+        },
+        "mihon.downloadDirectory": {
+          "type": "string",
+          "default": "./data/downloads",
+          "description": "Directory for downloaded manga chapters"
+        },
+        "mihon.autoStartServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the server when opening the Mihon view"
+        },
+        "mihon.keiyoushiRepo": {
+          "type": "string",
+          "default": "https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json",
+          "description": "Extension repository URL for manga sources"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "npx @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.21.1",
+    "typescript": "^5.4.5"
+  }
+}
