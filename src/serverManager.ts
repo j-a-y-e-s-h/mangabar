@@ -78,6 +78,53 @@ export class ServerManager {
           return;
         }
 
+        // 1b. Serve MangaBar icon for any favicon/logo/touch icon request
+        const cleanUrl = (req.url || '').split('?')[0].toLowerCase();
+        if (
+          cleanUrl === '/__mangabar_icon.svg' ||
+          cleanUrl.includes('favicon') ||
+          cleanUrl.endsWith('apple-touch-icon.png') ||
+          cleanUrl.endsWith('logo192.png') ||
+          cleanUrl.endsWith('logo512.png')
+        ) {
+          const iconPath = path.join(this.context.extensionPath, 'media', 'mangabar.svg');
+          if (fs.existsSync(iconPath)) {
+            const svgData = fs.readFileSync(iconPath, 'utf8');
+            res.writeHead(200, {
+              'Content-Type': 'image/svg+xml; charset=utf-8',
+              'Cache-Control': 'public, max-age=86400',
+            });
+            res.end(svgData);
+            return;
+          }
+        }
+
+        // 1c. Serve custom MangaBar webmanifest
+        if (cleanUrl.includes('webmanifest') || cleanUrl.includes('manifest.json')) {
+          const manifest = JSON.stringify({
+            name: 'MangaBar',
+            short_name: 'MangaBar',
+            description: 'Manga & Comic Reader',
+            icons: [
+              {
+                src: '/__mangabar_icon.svg',
+                sizes: '192x192 512x512',
+                type: 'image/svg+xml',
+              },
+            ],
+            start_url: '/',
+            display: 'standalone',
+            background_color: '#0d1117',
+            theme_color: '#0d1117',
+          });
+          res.writeHead(200, {
+            'Content-Type': 'application/manifest+json; charset=utf-8',
+            'Cache-Control': 'public, max-age=86400',
+          });
+          res.end(manifest);
+          return;
+        }
+
         // 2. Forward request to MangaBar server engine
         const headers: http.IncomingHttpHeaders = { ...req.headers, host: `127.0.0.1:${targetPort}` };
         delete headers['accept-encoding'];
@@ -97,11 +144,20 @@ export class ServerManager {
               upstreamRes.setEncoding('utf8');
               upstreamRes.on('data', (chunk) => (body += chunk));
               upstreamRes.on('end', () => {
-                // Scrub HTML titles and brand strings in-flight
+                // Deeply scrub HTML titles, favicons, meta tags, and brand strings in-flight
                 body = body
                   .replace(/<title>.*?<\/title>/gi, '<title>MangaBar</title>')
+                  .replace(/<meta\s+name="apple-mobile-web-app-title"\s+content=".*?"\s*\/?>/gi, '<meta name="apple-mobile-web-app-title" content="MangaBar" />')
+                  .replace(/<meta\s+name="description"\s+content=".*?"\s*\/?>/gi, '<meta name="description" content="MangaBar - Manga & Comic Reader" />')
+                  .replace(/href="\.?\/favicon[^"]*"/gi, 'href="/__mangabar_icon.svg"')
+                  .replace(/href="\.?\/apple-touch-icon[^"]*"/gi, 'href="/__mangabar_icon.svg"')
                   .replace(/Suwayomi(-WebUI)?/gi, 'MangaBar')
-                  .replace(/Tachidesk/gi, 'MangaBar Core');
+                  .replace(/Suwayomi-Server/gi, 'MangaBar Engine')
+                  .replace(/Suwayomi Server/gi, 'MangaBar Server')
+                  .replace(/Suwayomi/gi, 'MangaBar')
+                  .replace(/Tachidesk/gi, 'MangaBar Core')
+                  .replace(/Tachiyomi/gi, 'MangaBar')
+                  .replace(/Mihon/gi, 'MangaBar');
 
                 const injected = body.includes('</body>')
                   ? body.replace('</body>', '<script src="/__mangabar_enhancer.js"></script></body>')
@@ -183,12 +239,12 @@ export class ServerManager {
    * Tests if MangaBar server's HTTP or GraphQL API is already alive and responding on a port.
    */
   public async isServerHealthy(port: number): Promise<boolean> {
-    const url = `http://127.0.0.1:${port}/api/v1/about`;
+    const url = `http://127.0.0.1:${port}/`;
     try {
       return await new Promise<boolean>((resolve) => {
         const req = http.get(url, { timeout: 1500 }, (res) => {
           res.resume();
-          // Any 200 OK means server is responsive
+          // Status 200 means server engine and webui are responsive
           resolve(res.statusCode === 200);
         });
         req.on('error', () => resolve(false));
@@ -334,8 +390,11 @@ export class ServerManager {
         .replace(/Suwayomi-WebUI/gi, 'MangaBar WebUI')
         .replace(/Suwayomi/gi, 'MangaBar')
         .replace(/Tachidesk/gi, 'MangaBar Core')
+        .replace(/Tachiyomi/gi, 'MangaBar')
+        .replace(/suwayomi\.tachidesk/gi, 'mangabar.engine')
         .replace(/\[Mihon\]/gi, '[MangaBar]')
-        .replace(/\[Mihon Error\]/gi, '[MangaBar Error]');
+        .replace(/\[Mihon Error\]/gi, '[MangaBar Error]')
+        .replace(/Mihon/gi, 'MangaBar');
 
       filteredLines.push(sanitized);
     }
@@ -480,6 +539,9 @@ export class ServerManager {
     this.setState('STARTING');
 
     const javaArgs = [
+      '-Djava.awt.headless=true',
+      '-Dserver.initialOpenInBrowserEnabled=false',
+      '-Dserver.systemTrayEnabled=false',
       '-Dsuwayomi.tachidesk.server.initialOpenInBrowserEnabled=false',
       '-Dsuwayomi.tachidesk.server.systemTrayEnabled=false',
       '-jar',

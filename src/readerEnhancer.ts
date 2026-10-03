@@ -46,7 +46,69 @@ export function getReaderEnhancerScript(): string {
       .replace(/Suwayomi Server/gi, 'MangaBar Server')
       .replace(/Suwayomi/gi, 'MangaBar')
       .replace(/Tachidesk/gi, 'MangaBar Core')
+      .replace(/Tachiyomi/gi, 'MangaBar')
       .replace(/Mihon/gi, 'MangaBar');
+  }
+
+  // Intercept document.title property setter directly to ensure SPA routers cannot set Suwayomi title
+  try {
+    const titleDescriptor =
+      Object.getOwnPropertyDescriptor(Document.prototype, 'title') ||
+      Object.getOwnPropertyDescriptor(HTMLDocument.prototype, 'title');
+    if (titleDescriptor && titleDescriptor.set) {
+      Object.defineProperty(document, 'title', {
+        get: function () {
+          return titleDescriptor.get ? titleDescriptor.get.call(this) : '';
+        },
+        set: function (newTitle) {
+          const scrubbed = scrubBrandText(newTitle);
+          return titleDescriptor.set.call(this, scrubbed);
+        },
+        configurable: true,
+        enumerable: true,
+      });
+    }
+  } catch (err) {
+    console.warn('[MangaBar] Title interceptor notice:', err);
+  }
+
+  function ensureMangaBarFavicon() {
+    try {
+      const links = document.querySelectorAll('link[rel*="icon"], link[rel*="apple-touch"]');
+      links.forEach((link) => {
+        const href = link.getAttribute('href') || '';
+        if (!href.includes('/__mangabar_icon.svg')) {
+          link.setAttribute('href', '/__mangabar_icon.svg');
+          link.setAttribute('type', 'image/svg+xml');
+        }
+      });
+      if (!document.querySelector('link[href*="/__mangabar_icon.svg"]')) {
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/svg+xml';
+        link.href = '/__mangabar_icon.svg';
+        document.head.appendChild(link);
+      }
+    } catch {}
+  }
+
+  function scrubImagesAndLogos() {
+    try {
+      const imgs = document.querySelectorAll('img, svg');
+      imgs.forEach((img) => {
+        const src = img.getAttribute('src') || '';
+        const alt = img.getAttribute('alt') || '';
+        if (
+          /favicon|logo|suwayomi|mihon|tachiyomi/i.test(src) ||
+          /favicon|logo|suwayomi|mihon|tachiyomi/i.test(alt)
+        ) {
+          if (img.tagName.toLowerCase() === 'img') {
+            img.src = '/__mangabar_icon.svg';
+          }
+          img.setAttribute('alt', 'MangaBar');
+        }
+      });
+    } catch {}
   }
 
   function scrubNode(node) {
@@ -56,6 +118,7 @@ export function getReaderEnhancerScript(): string {
         node.nodeValue &&
         (/Suwayomi/i.test(node.nodeValue) ||
           /Tachidesk/i.test(node.nodeValue) ||
+          /Tachiyomi/i.test(node.nodeValue) ||
           /Mihon/i.test(node.nodeValue))
       ) {
         node.nodeValue = scrubBrandText(node.nodeValue);
@@ -68,7 +131,7 @@ export function getReaderEnhancerScript(): string {
         const val = el.getAttribute && el.getAttribute(attr);
         if (
           val &&
-          (/Suwayomi/i.test(val) || /Tachidesk/i.test(val) || /Mihon/i.test(val))
+          (/Suwayomi/i.test(val) || /Tachidesk/i.test(val) || /Tachiyomi/i.test(val) || /Mihon/i.test(val))
         ) {
           el.setAttribute(attr, scrubBrandText(val));
         }
@@ -87,10 +150,13 @@ export function getReaderEnhancerScript(): string {
       document.title &&
       (/Suwayomi/i.test(document.title) ||
         /Tachidesk/i.test(document.title) ||
+        /Tachiyomi/i.test(document.title) ||
         /Mihon/i.test(document.title))
     ) {
       document.title = scrubBrandText(document.title);
     }
+    ensureMangaBarFavicon();
+    scrubImagesAndLogos();
     if (document.body) {
       scrubNode(document.body);
     }
@@ -100,6 +166,34 @@ export function getReaderEnhancerScript(): string {
    * 1. FLOATING EXIT BUTTON (Canvas -> Manga Details)
    * ────────────────────────────────────────────────────────── */
   let floatingExitBtn = null;
+
+  function areReaderControlsOpen() {
+    // Check for visible drawer paper, topBar, or appBar
+    const drawer = document.querySelector(
+      '[class*="MuiDrawer-root"]:not([style*="visibility: hidden"]):not([style*="display: none"]), [class*="MuiDrawer-paper"]:not([style*="visibility: hidden"]):not([style*="display: none"]), [class*="drawer"]:not([style*="display: none"]), [class*="Drawer"]:not([style*="display: none"]), [role="presentation"] > [class*="MuiPaper-root"]'
+    );
+    if (drawer && drawer.offsetParent !== null && drawer.getBoundingClientRect().width > 0) {
+      return true;
+    }
+    const topBar = document.querySelector('header, [class*="topBar"], [class*="appBar"], [class*="MuiAppBar-root"]');
+    if (topBar && topBar.offsetParent !== null && topBar.getBoundingClientRect().height > 0) {
+      return true;
+    }
+    const backdrop = document.querySelector('[class*="MuiBackdrop-root"]');
+    if (backdrop && backdrop.offsetParent !== null) {
+      return true;
+    }
+    return false;
+  }
+
+  function updateFloatingExitButtonVisibility() {
+    if (!floatingExitBtn) return;
+    if (!isReaderView() || areReaderControlsOpen()) {
+      floatingExitBtn.style.display = 'none';
+    } else {
+      floatingExitBtn.style.display = 'flex';
+    }
+  }
 
   function ensureFloatingExitButton() {
     if (!isReaderView()) {
@@ -112,6 +206,7 @@ export function getReaderEnhancerScript(): string {
 
     if (document.getElementById('mangabar-floating-exit-btn')) {
       floatingExitBtn = document.getElementById('mangabar-floating-exit-btn');
+      updateFloatingExitButtonVisibility();
       return;
     }
 
@@ -130,8 +225,8 @@ export function getReaderEnhancerScript(): string {
     // Modern floating styles: 35% idle opacity, rounded pill, backdrop blur
     Object.assign(floatingExitBtn.style, {
       position: 'fixed',
-      top: '14px',
-      left: '14px',
+      top: '16px',
+      left: '16px',
       width: '36px',
       height: '36px',
       borderRadius: '50%',
@@ -140,7 +235,7 @@ export function getReaderEnhancerScript(): string {
       WebkitBackdropFilter: 'blur(10px)',
       border: '1px solid rgba(255, 255, 255, 0.18)',
       color: '#ffffff',
-      display: 'flex',
+      display: areReaderControlsOpen() ? 'none' : 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       cursor: 'pointer',
@@ -197,22 +292,25 @@ export function getReaderEnhancerScript(): string {
    * ────────────────────────────────────────────────────────── */
   function isReaderBackArrowButton(target) {
     if (!isReaderView() || !target) return false;
-    const btn = target.closest('button, [role="button"]');
+    const btn = target.closest('button, [role="button"], a');
     if (!btn) return false;
 
     // Check if it's the floating button we injected
     if (btn.id === 'mangabar-floating-exit-btn') return false;
 
-    // Check if it's inside an AppBar or top bar
-    const inTopBar = btn.closest('header, [class*="MuiAppBar"], [class*="topBar"], [class*="appBar"]');
-    if (!inTopBar) return false;
+    // Check if it's inside drawer or top bar
+    const inControls = btn.closest('[class*="drawer"], [class*="Drawer"], [class*="MuiDrawer"], header, [class*="MuiAppBar"], [class*="topBar"]');
+    if (!inControls) return false;
 
-    // Check if button has ArrowBack icon or aria-label="menu"
-    const hasBackSvg = btn.querySelector('svg path[d*="M20 11H7.83"], svg[data-testid="ArrowBackIcon"]');
+    // Check if button has ArrowBack icon or aria-label
+    const hasBackSvg = btn.querySelector('svg path[d*="M20 11H7.83"], svg path[d*="M19 12"], svg[data-testid="ArrowBackIcon"], svg');
     const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
-    const isBackLabel = ariaLabel.includes('back') || ariaLabel.includes('menu') || ariaLabel.includes('navigate_before');
+    const isBackLabel = ariaLabel.includes('back') || ariaLabel.includes('close') || ariaLabel.includes('navigate_before');
 
-    return !!(hasBackSvg || isBackLabel);
+    const rect = btn.getBoundingClientRect();
+    const isTopLeft = rect.top < 120 && rect.left < 120;
+
+    return !!(isBackLabel || (isTopLeft && hasBackSvg));
   }
 
   // Intercept click on reader menu back arrow
@@ -228,7 +326,7 @@ export function getReaderEnhancerScript(): string {
   }, true); // Capture phase to intercept before React router
 
   function dismissReaderControls() {
-    // Dispatch Escape key to dismiss overlay
+    // 1. Dispatch Escape key to dismiss overlay
     const escEvent = new KeyboardEvent('keydown', {
       key: 'Escape',
       code: 'Escape',
@@ -239,15 +337,22 @@ export function getReaderEnhancerScript(): string {
     });
     document.dispatchEvent(escEvent);
 
-    // Also simulate clicking center touch zone if Escape did not close it
+    // 2. Click backdrop if present
+    const backdrop = document.querySelector('[class*="MuiBackdrop-root"], [class*="backdrop"]');
+    if (backdrop) {
+      backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    }
+
+    // 3. Simulate clicking center touch zone if Escape did not close it
     setTimeout(() => {
       const centerX = Math.floor(window.innerWidth / 2);
       const centerY = Math.floor(window.innerHeight / 2);
       const centerEl = document.elementFromPoint(centerX, centerY);
-      if (centerEl && !centerEl.closest('button, input, select, textarea, [class*="MuiAppBar"], [class*="drawer"]')) {
+      if (centerEl && !centerEl.closest('button, input, select, textarea, [class*="MuiAppBar"], [class*="drawer"], [class*="Drawer"]')) {
         centerEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: centerX, clientY: centerY }));
       }
-    }, 50);
+      updateFloatingExitButtonVisibility();
+    }, 60);
   }
 
   /* ──────────────────────────────────────────────────────────
@@ -475,16 +580,7 @@ export function getReaderEnhancerScript(): string {
       resetZoom();
     }
     ensureFloatingExitButton();
-
-    // Hide floating button if reader menu overlay is open
-    const isMenuOpen = !!document.querySelector('header[class*="MuiAppBar"], [class*="topBar"], [class*="appBar"]');
-    if (floatingExitBtn) {
-      if (isMenuOpen) {
-        floatingExitBtn.style.display = 'none';
-      } else {
-        floatingExitBtn.style.display = 'flex';
-      }
-    }
+    updateFloatingExitButtonVisibility();
   }
 
   // Hook into browser history state transitions

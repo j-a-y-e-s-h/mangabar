@@ -1,5 +1,5 @@
 ---
-date: 2026-10-03
+mak![alt text](image-1.png)date: 2026-10-03
 topic: reader-navigation-flow
 ---
 
