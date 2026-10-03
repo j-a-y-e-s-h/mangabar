@@ -8,7 +8,7 @@ let serverManager: ServerManager | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   const configManager = new ConfigManager(context);
-  serverManager = new ServerManager(context);
+  serverManager = new ServerManager(context, configManager);
 
   const sidebarProvider = new SidebarProvider(context.extensionUri, serverManager, configManager);
 
@@ -23,8 +23,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.StatusBarAlignment.Right,
     100
   );
-  statusBarItem.command = 'mihon.openReader';
-  statusBarItem.tooltip = 'Mihon Reader: Click to Open';
+  statusBarItem.command = 'mangabar.toggleReader';
+  statusBarItem.tooltip = 'MangaBar Reader: Click to Toggle (Ctrl+Alt+M)';
   context.subscriptions.push(statusBarItem);
 
   const updateStatusBar = () => {
@@ -34,24 +34,24 @@ export function activate(context: vscode.ExtensionContext) {
 
     switch (state) {
       case 'RUNNING':
-        statusBarItem.text = `$(book) Mihon :${port}`;
-        statusBarItem.tooltip = `Mihon Server Running on port ${port}. Click to open reader.`;
+        statusBarItem.text = `$(book) MangaBar :${port}`;
+        statusBarItem.tooltip = `MangaBar Server Running on port ${port}. Click to toggle reader (Ctrl+Alt+M).`;
         statusBarItem.backgroundColor = undefined;
         break;
       case 'STARTING':
-        statusBarItem.text = `$(sync~spin) Mihon`;
-        statusBarItem.tooltip = 'Mihon Server Starting...';
+        statusBarItem.text = `$(sync~spin) MangaBar`;
+        statusBarItem.tooltip = 'MangaBar Server Starting...';
         statusBarItem.backgroundColor = undefined;
         break;
       case 'ERROR':
-        statusBarItem.text = `$(warning) Mihon Error`;
-        statusBarItem.tooltip = 'Mihon Server encountered an error. Click to restart.';
+        statusBarItem.text = `$(warning) MangaBar Error`;
+        statusBarItem.tooltip = 'MangaBar Server encountered an error. Click to restart.';
         statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
         break;
       case 'STOPPED':
       default:
-        statusBarItem.text = `$(book) Mihon`;
-        statusBarItem.tooltip = 'Mihon Server Stopped. Click to start & open.';
+        statusBarItem.text = `$(book) MangaBar`;
+        statusBarItem.tooltip = 'MangaBar Server Stopped. Click to start & open.';
         statusBarItem.backgroundColor = undefined;
         break;
     }
@@ -63,46 +63,116 @@ export function activate(context: vscode.ExtensionContext) {
   });
   updateStatusBar();
 
-  // Commands
+  // Primary MangaBar Commands
   context.subscriptions.push(
-    vscode.commands.registerCommand('mihon.openReader', async () => {
+    vscode.commands.registerCommand('mangabar.toggleReader', async () => {
+      if (!serverManager) return;
+      await ReaderPanel.toggle(context.extensionUri, serverManager);
+    }),
+
+    vscode.commands.registerCommand('mangabar.toggleSidebar', async () => {
+      try {
+        await vscode.commands.executeCommand('workbench.view.extension.mangabar-sidebar');
+      } catch {
+        await vscode.commands.executeCommand('workbench.view.extension.mihon-sidebar');
+      }
+    }),
+
+    vscode.commands.registerCommand('mangabar.toggleSideBarLocation', async () => {
+      const currentLocation = configManager.getSideBarLocation();
+      const newLocation = currentLocation === 'left' ? 'right' : 'left';
+      await configManager.setSideBarLocation(newLocation);
+
+      // Focus the view first so move commands target MangaBar
+      try {
+        await vscode.commands.executeCommand('mangabar.sidebarView.focus');
+      } catch {
+        await vscode.commands.executeCommand('mihon.sidebarView.focus');
+      }
+
+      if (newLocation === 'right') {
+        try {
+          await vscode.commands.executeCommand('workbench.action.moveFocusedView');
+        } catch {
+          await vscode.commands.executeCommand('workbench.action.toggleAuxiliaryBar');
+        }
+        vscode.window.showInformationMessage(
+          'MangaBar docking location set to Right (Secondary Side Bar). You can also drag the MangaBar icon between sidebars.',
+          'Got it'
+        );
+      } else {
+        try {
+          await vscode.commands.executeCommand('workbench.action.moveFocusedView');
+        } catch {}
+        vscode.window.showInformationMessage(
+          'MangaBar docking location set to Left (Primary Activity Bar).',
+          'Got it'
+        );
+      }
+    }),
+
+    vscode.commands.registerCommand('mangabar.openReader', async () => {
       if (!serverManager) return;
       await ReaderPanel.createOrShow(context.extensionUri, serverManager);
     }),
 
-    vscode.commands.registerCommand('mihon.startServer', async () => {
+    vscode.commands.registerCommand('mangabar.startServer', async () => {
       if (!serverManager) return;
       await serverManager.startServer();
     }),
 
-    vscode.commands.registerCommand('mihon.stopServer', async () => {
+    vscode.commands.registerCommand('mangabar.stopServer', async () => {
       if (!serverManager) return;
       await serverManager.stopServer();
     }),
 
-    vscode.commands.registerCommand('mihon.restartServer', async () => {
-      if (!serverManager) return;
-      await serverManager.stopServer();
-      await serverManager.startServer();
+    vscode.commands.registerCommand('mangabar.reloadView', () => {
+      sidebarProvider.reloadView();
+      if (ReaderPanel.currentPanel) {
+        ReaderPanel.currentPanel.reload();
+      }
+      vscode.window.setStatusBarMessage('$(refresh) MangaBar views reloaded', 2000);
     }),
 
-    vscode.commands.registerCommand('mihon.openWebBrowser', () => {
+    vscode.commands.registerCommand('mangabar.restartServer', async () => {
+      if (!serverManager) return;
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'MangaBar: Restarting Server...',
+          cancellable: false,
+        },
+        async (progress) => {
+          progress.report({ message: 'Releasing locks & terminating process...' });
+          const success = await serverManager.restartServer();
+          sidebarProvider.reloadView();
+          if (ReaderPanel.currentPanel) {
+            ReaderPanel.currentPanel.reload();
+          }
+          if (success) {
+            vscode.window.showInformationMessage('MangaBar Server restarted successfully.');
+          }
+        }
+      );
+    }),
+
+    vscode.commands.registerCommand('mangabar.openWebBrowser', () => {
       if (!serverManager) return;
       vscode.env.openExternal(vscode.Uri.parse(serverManager.getServerUrl()));
     }),
 
-    vscode.commands.registerCommand('mihon.configureStorage', async () => {
+    vscode.commands.registerCommand('mangabar.configureStorage', async () => {
       const selectedFolder = await vscode.window.showOpenDialog({
         canSelectFiles: false,
         canSelectFolders: true,
         canSelectMany: false,
-        openLabel: 'Select Storage Folder for Mihon',
+        openLabel: 'Select Storage Folder for MangaBar',
       });
 
       if (selectedFolder && selectedFolder.length > 0) {
         const folderPath = selectedFolder[0].fsPath;
         await configManager.setCustomDataDirectory(folderPath);
-        vscode.window.showInformationMessage(`Mihon storage directory set to: ${folderPath}`);
+        vscode.window.showInformationMessage(`MangaBar storage directory set to: ${folderPath}`);
         if (serverManager && serverManager.getState() === 'RUNNING') {
           const restart = await vscode.window.showInformationMessage(
             'Restart server now to apply new storage folder?',
@@ -110,13 +180,34 @@ export function activate(context: vscode.ExtensionContext) {
             'Later'
           );
           if (restart === 'Restart') {
-            await serverManager.stopServer();
-            await serverManager.startServer();
+            await serverManager.restartServer();
           }
         }
       }
     })
   );
+
+  // Backward compatibility aliases for legacy mihon.* commands
+  const legacyAliases: string[] = [
+    'toggleReader',
+    'toggleSidebar',
+    'toggleSideBarLocation',
+    'openReader',
+    'startServer',
+    'stopServer',
+    'reloadView',
+    'restartServer',
+    'openWebBrowser',
+    'configureStorage',
+  ];
+
+  for (const cmd of legacyAliases) {
+    context.subscriptions.push(
+      vscode.commands.registerCommand(`mihon.${cmd}`, (...args: any[]) => {
+        return vscode.commands.executeCommand(`mangabar.${cmd}`, ...args);
+      })
+    );
+  }
 }
 
 export async function deactivate() {

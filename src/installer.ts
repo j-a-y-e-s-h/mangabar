@@ -6,8 +6,9 @@ import * as child_process from 'child_process';
 import { URL } from 'url';
 
 export const SERVER_VERSION = 'v2.4.2366';
-export const JAR_FILENAME = `Suwayomi-Server-${SERVER_VERSION}.jar`;
-export const DOWNLOAD_URL = `https://github.com/Suwayomi/Suwayomi-Server/releases/download/${SERVER_VERSION}/${JAR_FILENAME}`;
+export const JAR_FILENAME = 'mangabar-server.jar';
+export const LEGACY_JAR_FILENAME = `Suwayomi-Server-${SERVER_VERSION}.jar`;
+export const DOWNLOAD_URL = `https://github.com/Suwayomi/Suwayomi-Server/releases/download/${SERVER_VERSION}/${LEGACY_JAR_FILENAME}`;
 export const ADOPTIUM_JRE21_URL =
   'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_windows_hotspot_21.0.12.1_1.zip';
 
@@ -20,19 +21,34 @@ export function getBinDirectory(extensionRoot: string): string {
 }
 
 export function getServerJarPath(extensionRoot: string, workspaceRoot?: string): string {
-  // Check extension root bin first
-  const extJar = path.join(extensionRoot, 'bin', JAR_FILENAME);
-  if (fs.existsSync(extJar) && fs.statSync(extJar).size > 150 * 1024 * 1024) {
-    return extJar;
-  }
-  // Check workspace root bin
-  if (workspaceRoot) {
-    const wsJar = path.join(workspaceRoot, 'bin', JAR_FILENAME);
-    if (fs.existsSync(wsJar) && fs.statSync(wsJar).size > 150 * 1024 * 1024) {
-      return wsJar;
+  const candidateDirs = [
+    path.join(extensionRoot, 'bin'),
+    workspaceRoot ? path.join(workspaceRoot, 'bin') : null,
+  ].filter(Boolean) as string[];
+
+  // 1. Check if mangabar-server.jar exists in any candidate dir
+  for (const dir of candidateDirs) {
+    const jar = path.join(dir, JAR_FILENAME);
+    if (fs.existsSync(jar) && fs.statSync(jar).size > 150 * 1024 * 1024) {
+      return jar;
     }
   }
-  return extJar;
+
+  // 2. Check if legacy jar exists, and copy/rename it to mangabar-server.jar
+  for (const dir of candidateDirs) {
+    const legacyJar = path.join(dir, LEGACY_JAR_FILENAME);
+    if (fs.existsSync(legacyJar) && fs.statSync(legacyJar).size > 150 * 1024 * 1024) {
+      const preferred = path.join(dir, JAR_FILENAME);
+      try {
+        fs.copyFileSync(legacyJar, preferred);
+        return preferred;
+      } catch {
+        return legacyJar;
+      }
+    }
+  }
+
+  return path.join(extensionRoot, 'bin', JAR_FILENAME);
 }
 
 export function isServerJarInstalled(extensionRoot: string, workspaceRoot?: string): boolean {
@@ -208,7 +224,7 @@ export async function downloadFileWithRedirects(
         currentUrl,
         {
           headers: {
-            'User-Agent': 'Antigravity-Mihon-Installer',
+            'User-Agent': 'Antigravity-MangaBar-Installer',
           },
         },
         (res) => {

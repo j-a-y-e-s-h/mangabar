@@ -1,3 +1,4 @@
+.git/**
 .vscode/**
 .vscode-test/**
 src/**
@@ -8,5 +9,6 @@ data/**
 node_modules/**
 tsconfig.json
 esbuild.js
+package-lock.json
 *.vsix
 .gitignore

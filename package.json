@@ -1,125 +1,224 @@
 {
-  "name": "antigravity-mihon",
-  "displayName": "Mihon Reader",
-  "description": "Seamlessly read manga in Antigravity IDE with embedded Mihon / Suwayomi WebUI and automated server lifecycle management.",
-  "version": "0.1.0",
+  "name": "antigravity-mangabar",
+  "displayName": "MangaBar - Manga & Comic Reader",
+  "description": "Read manga, manhwa, and comics directly in your IDE sidebar or full editor tab. An open-source desktop alternative to Mihon & Suwayomi with Keiyoushi source extensions, offline downloads, and customizable dual-side docking.",
+  "version": "0.2.0",
   "publisher": "local-developer",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#0d1117",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "mangabar",
+    "manga",
+    "manhwa",
+    "webtoon",
+    "comics",
+    "reader",
+    "suwayomi",
+    "mihon",
+    "tachiyomi",
+    "keiyoushi"
+  ],
+  "badges": [
+    {
+      "url": "https://img.shields.io/badge/MangaBar-v0.2.0-00bcd4",
+      "href": "https://github.com/local/antigravity-mangabar",
+      "description": "MangaBar Reader"
+    },
+    {
+      "url": "https://img.shields.io/badge/Keiyoushi-Extensions-8a2be2",
+      "href": "https://github.com/keiyoushi/extensions",
+      "description": "Keiyoushi Extensions"
+    },
+    {
+      "url": "https://img.shields.io/badge/License-MIT-4caf50",
+      "href": "https://opensource.org/licenses/MIT",
+      "description": "License: MIT"
+    }
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/local/antigravity-mihon"
+    "url": "https://github.com/local/antigravity-mangabar"
   },
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onView:mihon.sidebarView",
-    "onCommand:mihon.openReader",
-    "onCommand:mihon.startServer"
+    "onView:mangabar.sidebarView",
+    "onCommand:mangabar.openReader",
+    "onCommand:mangabar.toggleReader",
+    "onCommand:mangabar.toggleSidebar",
+    "onCommand:mangabar.toggleSideBarLocation",
+    "onCommand:mangabar.startServer"
   ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "mihon-sidebar",
-          "title": "Mihon",
-          "icon": "media/mihon.svg"
+          "id": "mangabar-sidebar",
+          "title": "MangaBar",
+          "icon": "media/mangabar.svg"
         }
       ]
     },
     "views": {
-      "mihon-sidebar": [
+      "mangabar-sidebar": [
         {
           "type": "webview",
-          "id": "mihon.sidebarView",
-          "name": "Mihon"
+          "id": "mangabar.sidebarView",
+          "name": "MangaBar"
         }
       ]
     },
     "commands": [
       {
-        "command": "mihon.openReader",
+        "command": "mangabar.toggleReader",
+        "title": "Toggle Full Reader",
+        "category": "MangaBar",
+        "icon": "$(book)"
+      },
+      {
+        "command": "mangabar.toggleSidebar",
+        "title": "Toggle MangaBar Sidebar",
+        "category": "MangaBar",
+        "icon": "$(layout-sidebar-left)"
+      },
+      {
+        "command": "mangabar.toggleSideBarLocation",
+        "title": "Toggle Side Bar Location (Left / Right)",
+        "category": "MangaBar",
+        "icon": "$(split-horizontal)"
+      },
+      {
+        "command": "mangabar.openReader",
         "title": "Open Full Reader",
-        "category": "Mihon",
+        "category": "MangaBar",
         "icon": "$(screen-full)"
       },
       {
-        "command": "mihon.startServer",
+        "command": "mangabar.startServer",
         "title": "Start Server",
-        "category": "Mihon",
+        "category": "MangaBar",
         "icon": "$(play)"
       },
       {
-        "command": "mihon.stopServer",
-        "title": "Stop Server",
-        "category": "Mihon",
-        "icon": "$(debug-stop)"
-      },
-      {
-        "command": "mihon.restartServer",
-        "title": "Restart Server",
-        "category": "Mihon",
+        "command": "mangabar.reloadView",
+        "title": "Reload View",
+        "category": "MangaBar",
         "icon": "$(refresh)"
       },
       {
-        "command": "mihon.configureStorage",
+        "command": "mangabar.restartServer",
+        "title": "Restart Server",
+        "category": "MangaBar",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "mangabar.stopServer",
+        "title": "Stop Server",
+        "category": "MangaBar",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "mangabar.configureStorage",
         "title": "Change Storage Location",
-        "category": "Mihon",
+        "category": "MangaBar",
         "icon": "$(folder)"
       },
       {
-        "command": "mihon.openWebBrowser",
+        "command": "mangabar.openWebBrowser",
         "title": "Open in External Browser",
-        "category": "Mihon",
+        "category": "MangaBar",
         "icon": "$(globe)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "mangabar.toggleReader",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m"
+      },
+      {
+        "command": "mangabar.toggleSidebar",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "mihon.openReader",
-          "when": "view == mihon.sidebarView",
+          "command": "mangabar.toggleSideBarLocation",
+          "when": "view == mangabar.sidebarView",
+          "group": "navigation@0"
+        },
+        {
+          "command": "mangabar.reloadView",
+          "when": "view == mangabar.sidebarView",
           "group": "navigation@1"
         },
         {
-          "command": "mihon.restartServer",
-          "when": "view == mihon.sidebarView",
+          "command": "mangabar.restartServer",
+          "when": "view == mangabar.sidebarView",
           "group": "navigation@2"
         },
         {
-          "command": "mihon.stopServer",
-          "when": "view == mihon.sidebarView",
+          "command": "mangabar.openReader",
+          "when": "view == mangabar.sidebarView",
           "group": "navigation@3"
+        },
+        {
+          "command": "mangabar.stopServer",
+          "when": "view == mangabar.sidebarView",
+          "group": "navigation@4"
         }
       ]
     },
     "configuration": {
-      "title": "Mihon",
+      "title": "MangaBar",
       "properties": {
-        "mihon.serverPort": {
+        "mangabar.sideBarLocation": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right"
+          ],
+          "default": "left",
+          "description": "Docking location for MangaBar: primary left Activity Bar or secondary right Side Bar."
+        },
+        "mangabar.customServerUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Custom or remote MangaBar server URL (e.g., http://localhost:4567 or http://192.168.1.100:4567). When specified, connects directly without launching local server binaries."
+        },
+        "mangabar.serverPort": {
           "type": "number",
           "default": 4567,
-          "description": "Port for Suwayomi-Server (defaults to 4567 with auto fallback)"
+          "description": "Port for MangaBar Server Engine (defaults to 4567 with auto fallback)"
         },
-        "mihon.dataDirectory": {
+        "mangabar.dataDirectory": {
           "type": "string",
           "default": "./data",
-          "description": "Directory where Suwayomi stores library, database, and settings"
+          "description": "Directory where MangaBar stores library, database, and settings"
         },
-        "mihon.downloadDirectory": {
+        "mangabar.downloadDirectory": {
           "type": "string",
           "default": "./data/downloads",
           "description": "Directory for downloaded manga chapters"
         },
-        "mihon.autoStartServer": {
+        "mangabar.autoStartServer": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically start the server when opening the Mihon view"
+          "description": "Automatically start the server when opening the MangaBar view"
         },
-        "mihon.keiyoushiRepo": {
+        "mangabar.keiyoushiRepo": {
           "type": "string",
           "default": "https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json",
           "description": "Extension repository URL for manga sources"

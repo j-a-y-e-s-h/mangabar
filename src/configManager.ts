@@ -1,12 +1,21 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 export class ConfigManager {
   private extensionContext: vscode.ExtensionContext;
 
   constructor(context: vscode.ExtensionContext) {
     this.extensionContext = context;
+  }
+
+  private getConfig(): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration('mangabar');
+  }
+
+  private getLegacyConfig(): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration('mihon');
   }
 
   public getWorkspaceRoot(): string {
@@ -18,62 +27,137 @@ export class ConfigManager {
   }
 
   public getConfiguredPort(): number {
-    const config = vscode.workspace.getConfiguration('mihon');
-    return config.get<number>('serverPort', 4567);
+    const config = this.getConfig();
+    const legacy = this.getLegacyConfig();
+    return config.get<number>('serverPort') ?? legacy.get<number>('serverPort', 4567);
   }
 
   public getDataDirectory(): string {
-    const config = vscode.workspace.getConfiguration('mihon');
-    const configuredPath = config.get<string>('dataDirectory', './data');
-    if (path.isAbsolute(configuredPath)) {
-      return configuredPath;
+    const config = this.getConfig();
+    const legacy = this.getLegacyConfig();
+    const configuredPath =
+      config.get<string>('dataDirectory') ?? legacy.get<string>('dataDirectory');
+    if (configuredPath && configuredPath !== './data') {
+      if (path.isAbsolute(configuredPath)) {
+        return configuredPath;
+      }
+      return path.resolve(this.getWorkspaceRoot(), configuredPath);
     }
-    return path.resolve(this.getWorkspaceRoot(), configuredPath);
+    // Check if workspace has ./data or default to ~/.mangabar
+    const wsData = path.resolve(this.getWorkspaceRoot(), './data');
+    if (fs.existsSync(wsData)) {
+      return wsData;
+    }
+    return path.join(os.homedir(), '.mangabar');
   }
 
   public getDownloadDirectory(): string {
-    const config = vscode.workspace.getConfiguration('mihon');
-    const configuredPath = config.get<string>('downloadDirectory', './data/downloads');
-    if (path.isAbsolute(configuredPath)) {
-      return configuredPath;
+    const config = this.getConfig();
+    const legacy = this.getLegacyConfig();
+    const configuredPath =
+      config.get<string>('downloadDirectory') ?? legacy.get<string>('downloadDirectory');
+    if (configuredPath && configuredPath !== './data/downloads') {
+      if (path.isAbsolute(configuredPath)) {
+        return configuredPath;
+      }
+      return path.resolve(this.getWorkspaceRoot(), configuredPath);
     }
-    return path.resolve(this.getWorkspaceRoot(), configuredPath);
+    return path.join(this.getDataDirectory(), 'downloads');
   }
 
   public getKeiyoushiRepoUrl(): string {
-    const config = vscode.workspace.getConfiguration('mihon');
-    return config.get<string>(
-      'keiyoushiRepo',
-      'https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json'
+    const config = this.getConfig();
+    const legacy = this.getLegacyConfig();
+    return (
+      config.get<string>('keiyoushiRepo') ??
+      legacy.get<string>(
+        'keiyoushiRepo',
+        'https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json'
+      )
     );
   }
 
+  public getCustomServerUrl(): string | undefined {
+    const config = this.getConfig();
+    const legacy = this.getLegacyConfig();
+    const url = (
+      config.get<string>('customServerUrl') ?? legacy.get<string>('customServerUrl', '')
+    ).trim();
+    return url.length > 0 ? url : undefined;
+  }
+
+  public async setCustomServerUrl(url: string): Promise<void> {
+    const config = this.getConfig();
+    await config.update('customServerUrl', url, vscode.ConfigurationTarget.Global);
+  }
+
   public shouldAutoStart(): boolean {
-    const config = vscode.workspace.getConfiguration('mihon');
-    return config.get<boolean>('autoStartServer', true);
+    const config = this.getConfig();
+    const legacy = this.getLegacyConfig();
+    return config.get<boolean>('autoStartServer') ?? legacy.get<boolean>('autoStartServer', true);
   }
 
   public async setCustomDataDirectory(newPath: string): Promise<void> {
-    const config = vscode.workspace.getConfiguration('mihon');
+    const config = this.getConfig();
     await config.update('dataDirectory', newPath, vscode.ConfigurationTarget.Global);
   }
 
   public async setCustomDownloadDirectory(newPath: string): Promise<void> {
-    const config = vscode.workspace.getConfiguration('mihon');
+    const config = this.getConfig();
     await config.update('downloadDirectory', newPath, vscode.ConfigurationTarget.Global);
   }
 
+  public getSideBarLocation(): 'left' | 'right' {
+    const config = this.getConfig();
+    const legacy = this.getLegacyConfig();
+    return (
+      config.get<'left' | 'right'>('sideBarLocation') ??
+      legacy.get<'left' | 'right'>('sideBarLocation', 'left')
+    );
+  }
+
+  public async setSideBarLocation(location: 'left' | 'right'): Promise<void> {
+    const config = this.getConfig();
+    await config.update('sideBarLocation', location, vscode.ConfigurationTarget.Global);
+  }
+
   /**
-   * Pre-seeds Suwayomi server.conf with port, downloadDir, and Keiyoushi repository
+   * Pre-seeds server.conf with port, downloadDir, and Keiyoushi repository.
+   * Performs automatic seamless migration from ~/.suwayomi if found.
    */
   public prepareDataDirectory(port: number): string {
     const dataDir = this.getDataDirectory();
     const downloadDir = this.getDownloadDirectory();
     const repoUrl = this.getKeiyoushiRepoUrl();
 
+    // Check for automatic migration from legacy ~/.suwayomi
+    const legacyHomeSuwayomi = path.join(os.homedir(), '.suwayomi');
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
+
+      if (fs.existsSync(legacyHomeSuwayomi)) {
+        try {
+          const files = fs.readdirSync(legacyHomeSuwayomi);
+          for (const file of files) {
+            const src = path.join(legacyHomeSuwayomi, file);
+            const dst = path.join(dataDir, file);
+            if (!fs.existsSync(dst) && !file.includes('lock')) {
+              try {
+                if (fs.statSync(src).isDirectory()) {
+                  fs.cpSync(src, dst, { recursive: true });
+                } else {
+                  fs.copyFileSync(src, dst);
+                }
+              } catch {}
+            }
+          }
+          console.log('[MangaBar] Seamlessly migrated user database from legacy directory.');
+        } catch (migErr) {
+          console.error('[MangaBar] Migration notice:', migErr);
+        }
+      }
     }
+
     if (!fs.existsSync(downloadDir)) {
       fs.mkdirSync(downloadDir, { recursive: true });
     }
@@ -89,17 +173,17 @@ export class ConfigManager {
       }
     }
 
-    // Normalized Windows backslashes to forward slashes for HOCON / config format
     const safeDataDir = dataDir.replace(/\\/g, '/');
     const safeDownloadDir = downloadDir.replace(/\\/g, '/');
 
-    // Check or update server.conf keys
     const lines = confContent ? confContent.split('\n') : [];
     const keysToSet: Record<string, string> = {
       'server.port': `${port}`,
       'server.ip': '"127.0.0.1"',
-      'server.downloadDir': `"${safeDownloadDir}"`,
-      'server.extensionRepos': `["${repoUrl}"]`,
+      'server.initialOpenInBrowserEnabled': 'false',
+      'server.systemTrayEnabled': 'false',
+      'server.downloadsPath': `"${safeDownloadDir}"`,
+      'server.extensionStores': `["${repoUrl}"]`,
     };
 
     const newLines: string[] = [];
