@@ -257,7 +257,26 @@ export function getReaderEnhancerScript(): string {
       floatingExitBtn.style.opacity = '0.35';
       floatingExitBtn.style.transform = 'scale(1.0)';
       floatingExitBtn.style.backgroundColor = 'rgba(20, 20, 24, 0.72)';
+      resetIdleTimer();
     });
+
+    let idleTimeout = null;
+    function resetIdleTimer() {
+      if (!floatingExitBtn || areReaderControlsOpen() || !isReaderView()) return;
+      if (!floatingExitBtn.matches(':hover')) {
+        floatingExitBtn.style.opacity = '0.35';
+      }
+      clearTimeout(idleTimeout);
+      idleTimeout = setTimeout(() => {
+        if (floatingExitBtn && !floatingExitBtn.matches(':hover') && !areReaderControlsOpen()) {
+          floatingExitBtn.style.opacity = '0.08';
+        }
+      }, 3500);
+    }
+
+    window.addEventListener('mousemove', resetIdleTimer, { passive: true });
+    window.addEventListener('touchstart', resetIdleTimer, { passive: true });
+    resetIdleTimer();
 
     floatingExitBtn.addEventListener('click', (e) => {
       e.preventDefault();
