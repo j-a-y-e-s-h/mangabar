@@ -8,9 +8,9 @@ origin: docs/brainstorms/2026-10-03-reader-navigation-flow-requirements.md
 # Technical Plan: Reader Navigation Flow, Dual Sidebar Placement, and Safe Ctrl-Zoom
 
 ## Summary
-Implements three high-impact usability enhancements for the Antigravity IDE Mihon extension:
+Implements three high-impact usability enhancements for the Antigravity IDE MangaBar extension:
 1. **Reader Navigation Flow**: Repurposes the reader menu backward arrow to return directly to the active manga page, while introducing a floating translucent exit button on the manga canvas to return to Manga Details or Library.
-2. **Dual Sidebar Placement (Left vs Right)**: Enables placing the Mihon sidebar in either the primary Activity Bar (left) or the Secondary Side Bar (`auxiliarybar` on the right), allowing developers to keep code/explorer on the left and Mihon on the right simultaneously, with a 1-click toolbar toggle and configuration setting.
+2. **Dual Sidebar Placement (Left vs Right)**: Enables placing the MangaBar sidebar in either the primary Activity Bar (left) or the Secondary Side Bar (`auxiliarybar` on the right), allowing developers to keep code/explorer on the left and MangaBar on the right simultaneously, with a 1-click toolbar toggle and configuration setting.
 3. **Safe Manga Ctrl-Zoom**: Adds smooth `Ctrl + Mouse Wheel` and `Ctrl +/-/0` image zoom clamped between 50% and 400%, with click-and-drag pan when zoomed in, auto-reset on page turns, zero interference with IDE zoom, and zero accidental triggers.
 
 ---
@@ -26,7 +26,7 @@ Implements three high-impact usability enhancements for the Antigravity IDE Miho
 | R24 | Visual Polish & Zero Emojis | U1, U2 | Uses codicons / SVG icons conforming to Antigravity design guidelines. |
 | R25 | Dual Sidebar Placement (Left / Right) | U2 | Registers views container in both Activity Bar and Auxiliary Bar with 1-click toggle and setting. |
 | R26 | Safe Clamped Manga Ctrl-Zoom | U3 | `Ctrl + Wheel` / keyboard zoom (50%-400%) with drag-pan, no IDE zoom leak, auto-reset on page change. |
-| R27 | Dedicated Brand Identity (MangaBar) | U0 | Official rebranding to 'MangaBar - Manga & Comic Reader' with SEO metadata and Mihon/Suwayomi alternative keywords. |
+| R27 | Dedicated Brand Identity (MangaBar) | U0 | Official rebranding to 'MangaBar - Manga & Comic Reader' with SEO metadata and alternative keywords. |
 
 
 ---
@@ -37,15 +37,15 @@ Implements three high-impact usability enhancements for the Antigravity IDE Miho
 flowchart TD
     subgraph Antigravity IDE Extension Host
         EM[extension.ts / Commands]
-        CM[configManager.ts: mihon.sideBarLocation]
+        CM[configManager.ts: mangabar.sideBarLocation]
         SP[sidebarProvider.ts: Webview]
         RP[readerPanel.ts: Full Reader Panel]
     end
 
     subgraph Webview Layer
-        SP -->|Iframe Wrapper| SW[Suwayomi WebUI Client]
+        SP -->|Iframe Wrapper| SW[MangaBar WebUI Client]
         RP -->|Iframe Wrapper| SW
-        NAV_INJECT[mihon-reader-enhancer.js Bridge] -->|Injected into| SW
+        NAV_INJECT[mangabar-reader-enhancer.js Bridge] -->|Injected into| SW
     end
 
     subgraph Enhancer Features
@@ -59,13 +59,13 @@ flowchart TD
 
 ## Key Technical Decisions & Rationale
 
-### 1. Client-Side Script Injection Bridge (`mihon-reader-enhancer.js`)
-- **Decision:** Inject a lightweight client script into the Suwayomi reader page context.
-- **Rationale:** Suwayomi WebUI runs inside an iframe. Running inside the iframe window allows native DOM observation, event interception (stopping default navigation on menu back arrow), rendering the floating exit button directly over the reader canvas, and capturing `wheel` events with `e.preventDefault()` to prevent zooming the entire outer IDE.
+### 1. Client-Side Script Injection Bridge (`mangabar-reader-enhancer.js`)
+- **Decision:** Inject a lightweight client script into the MangaBar reader page context.
+- **Rationale:** WebUI runs inside an iframe. Running inside the iframe window allows native DOM observation, event interception (stopping default navigation on menu back arrow), rendering the floating exit button directly over the reader canvas, and capturing `wheel` events with `e.preventDefault()` to prevent zooming the entire outer IDE.
 - **Alternative Considered:** Outer webview overlay. Rejected because outer webview overlays cannot track scroll position or reader state changes happening inside the iframe.
 
 ### 2. Dual ViewsContainer Contribution (`activitybar` + `auxiliarybar`)
-- **Decision:** Declare view containers in `package.json` for both `activitybar` (left) and `auxiliarybar` (right), or use VS Code's `workbench.action.moveFocusedView` / `workbench.action.toggleSecondarySideBar` command integration alongside a setting `mihon.sideBarLocation: "left" | "right"`.
+- **Decision:** Declare view containers in `package.json` for both `activitybar` (left) and `auxiliarybar` (right), or use VS Code's `workbench.action.moveFocusedView` / `workbench.action.toggleSecondarySideBar` command integration alongside a setting `mangabar.sideBarLocation: "left" | "right"`.
 - **Rationale:** `auxiliarybar` is the standard VS Code mechanism for secondary sidebars (right side). This enables a true split view: code on the left, manga on the right.
 
 ### 3. Zoom Safety Guardrails
