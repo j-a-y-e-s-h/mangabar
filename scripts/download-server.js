@@ -40,7 +40,7 @@ function get(currentUrl, redirectCount = 0) {
     currentUrl,
     {
       headers: {
-        'User-Agent': 'Antigravity-Mihon-Setup',
+        'User-Agent': 'MangaBar-Setup',
       },
     },
     (res) => {

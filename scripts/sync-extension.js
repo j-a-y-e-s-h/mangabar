@@ -11,6 +11,10 @@ const os = require('os');
 
 const rootDir = path.resolve(__dirname, '..');
 const candidates = [
+  path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0'),
+  path.join(os.homedir(), '.antigravity', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0'),
+  path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0'),
+  path.join(os.homedir(), '.cursor', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0'),
   path.join(os.homedir(), '.antigravity-ide', 'extensions', 'local-developer.antigravity-mangabar-0.2.0'),
   path.join(os.homedir(), '.antigravity', 'extensions', 'local-developer.antigravity-mangabar-0.2.0'),
   path.join(os.homedir(), '.vscode', 'extensions', 'local-developer.antigravity-mangabar-0.2.0'),
@@ -44,6 +48,9 @@ for (const targetDir of candidates) {
     copyRecursive(path.join(rootDir, 'media'), path.join(targetDir, 'media'));
     // 3. Copy package.json
     copyRecursive(path.join(rootDir, 'package.json'), path.join(targetDir, 'package.json'));
+    // 4. Copy README.md (both case variations for IDE details webview)
+    copyRecursive(path.join(rootDir, 'README.md'), path.join(targetDir, 'README.md'));
+    copyRecursive(path.join(rootDir, 'README.md'), path.join(targetDir, 'readme.md'));
     syncCount++;
   }
 }

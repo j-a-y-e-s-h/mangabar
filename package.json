@@ -1,9 +1,9 @@
 {
-  "name": "antigravity-mangabar",
+  "name": "mangabar",
   "displayName": "MangaBar - Manga & Comic Reader",
-  "description": "Read manga, manhwa, and comics directly in your IDE sidebar or full editor tab. High-performance offline reader with extension catalog, offline downloads, and customizable dual-side docking.",
+  "description": "Read manga, manhwa, webtoons, and comics directly in your IDE sidebar or full editor tab. High-performance offline reader with Keiyoushi catalog (350+ sources), offline downloads, smooth zoom & pan, and dual-side docking.",
   "version": "0.2.0",
-  "publisher": "local-developer",
+  "publisher": "j-a-y-e-s-h",
   "license": "MIT",
   "icon": "media/icon.png",
   "galleryBanner": {
@@ -23,9 +23,13 @@
     "manhwa",
     "webtoon",
     "comics",
-    "reader",
+    "comic-reader",
+    "manga-reader",
+    "keiyoushi",
+    "mangadex",
+    "offline-reader",
     "ide-reader",
-    "offline-reader"
+    "developer-productivity"
   ],
   "badges": [
     {

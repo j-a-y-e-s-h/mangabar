@@ -92,7 +92,7 @@ async function run() {
         tag_name: TAG,
         target_commitish: 'main',
         name: `MangaBar ${TAG} — Official Release`,
-        body: `## 📖 MangaBar ${TAG}\n\nHigh-performance Manga, Manhwa & Comic reader inside your IDE (VS Code, Antigravity, Cursor, Windsurf).\n\n### 📦 Release Downloads\n- **\`antigravity-mangabar-0.2.0.vsix\`**: Installable IDE Extension package\n- **\`mangabar-server.jar\`**: Core MangaBar background server engine\n`,
+        body: `## 📖 MangaBar ${TAG}\n\nHigh-performance Manga, Manhwa & Comic reader inside your IDE (VS Code, Cursor, Windsurf, VSCodium).\n\n### 📦 Release Downloads\n- **\`mangabar-0.2.0.vsix\`**: Installable IDE Extension package\n- **\`mangabar-server.jar\`**: Core MangaBar background server engine\n`,
         draft: false,
         prerelease: false,
       })
@@ -117,7 +117,10 @@ async function run() {
   }
 
   const rootDir = path.resolve(__dirname, '..');
-  const vsixPath = path.join(rootDir, 'antigravity-mangabar-0.2.0.vsix');
+  let vsixPath = path.join(rootDir, 'mangabar-0.2.0.vsix');
+  if (!fs.existsSync(vsixPath)) {
+    vsixPath = path.join(rootDir, 'antigravity-mangabar-0.2.0.vsix');
+  }
   const jarPath = path.join(rootDir, 'bin', 'mangabar-server.jar');
 
   // Upload .vsix

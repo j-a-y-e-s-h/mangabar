@@ -796,7 +796,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             <path d="M18.5 4.2c-1.5-1-3-.7-4 .3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
           </svg>
           <div class="title">MangaBar Reader</div>
-          <div class="subtitle">Read manga seamlessly inside Antigravity with zero external setup.</div>
+          <div class="subtitle">Read manga seamlessly inside your IDE with zero external setup.</div>
           <button style="padding: 7px 18px; font-size: 13px;" onclick="send('start')">
             <svg class="icon-svg" viewBox="0 0 16 16"><path d="M4.5 2.8c-.5-.3-1.1.1-1.1.7v9c0 .6.6 1 1.1.7l7.5-4.5c.5-.3.5-1 0-1.4l-7.5-4.5z"/></svg>
             <span>Start Server</span>

@@ -12,3 +12,4 @@ esbuild.js
 package-lock.json
 *.vsix
 .gitignore
+scratch/**

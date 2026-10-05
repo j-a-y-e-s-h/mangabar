@@ -230,7 +230,7 @@ export async function downloadFileWithRedirects(
         currentUrl,
         {
           headers: {
-            'User-Agent': 'Antigravity-MangaBar-Installer',
+            'User-Agent': 'MangaBar-Installer',
           },
         },
         (res) => {

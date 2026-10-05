@@ -1,136 +1,147 @@
-# MangaBar - Manga & Comic Reader for VS Code & Antigravity IDE
-
-![MangaBar Hero Banner](media/hero-banner.png)
+# MangaBar - Manga & Comic Reader for VS Code & Modern IDEs
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MangaBar-v0.2.0-00bcd4?style=flat-square" alt="MangaBar">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-4caf50?style=flat-square" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-333333?style=flat-square" alt="Platforms">
+  <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" alt="MangaBar - Manga & Comic Reader for VS Code" width="100%">
 </p>
 
-**MangaBar** is a dedicated, lightweight manga and comic reader engineered directly for code editors and IDEs. Read manga, manhwa, and webcomics seamlessly inside your workspace without switching windows, losing focus, or leaving your development workflow.
+<p align="center">
+  <a href="https://github.com/j-a-y-e-s-h/mangabar/releases/latest"><img src="https://img.shields.io/badge/MangaBar-v0.2.0-00bcd4?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="MangaBar Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-4caf50?style=for-the-badge" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-6c5ce7?style=for-the-badge" alt="Cross Platform">
+  <img src="https://img.shields.io/badge/Sources-350%2B%20Extensions-ff7675?style=for-the-badge" alt="350+ Sources">
+</p>
 
 ---
 
-## Key Features
+## ⚡ Read Manga Directly Inside Your Development Workspace
 
-![Split Screen Reader Interface](media/feature-reader.jpg)
+**MangaBar** is a lightweight, high-performance manga, manhwa, webtoon, and comic reader crafted specifically for code editors and IDEs. Whether you're waiting for a build to finish, tests to pass, or taking a quick micro-break between coding sprints, MangaBar lets you read seamlessly without switching windows, losing focus, or breaking your development flow.
 
-- **Dedicated Dual-Side Docking (Left or Right)**:
-  - Dock MangaBar in either the Primary Activity Bar (left) or Secondary Side Bar (`auxiliarybar` on the right) with a single click. Keep your File Explorer open on the left and read manga on the right simultaneously.
-- **Intuitive Reader Navigation Flow**:
-  - Clicking the top-left backward arrow (`←`) in reader controls dismisses the menu and returns directly to the active manga page (instead of abruptly closing the reader).
-  - A subtle, translucent floating exit button (35% idle opacity, 100% on hover) in the top-left corner allows you to smoothly exit back to Manga Details or Library.
-- **Safe Clamped Ctrl-Zoom (50% - 400%)**:
-  - Smooth `Ctrl + Mouse Wheel` and `Ctrl +/-/0` image zoom clamped between 0.5x and 4.0x.
-  - Zero accidental triggers: calling `preventDefault()` ensures your IDE window/fonts never zoom accidentally.
-  - Click-and-drag pan when zoomed in (`> 1.0x`); normal tap-to-turn works normally at 1.0x.
-  - Automatic zoom reset on page turns and chapter changes, with a transient HUD pill.
-- **Embedded Full Reader**:
-  - Open any chapter or library view into a full-scale editor tab with hotkeys and smooth continuous or single-page reading.
-- **Real-Time Clean Server Logging**:
-  - Custom MangaBar ASCII launch banner and sanitized log output stream in the Output Channel.
-- **Global Keyboard Shortcuts**:
-  - Instant toggle (`Ctrl+Alt+M`) to show or dismiss MangaBar while coding.
-- **Automated Lifecycle Management**:
-  - Automatic background startup on activation, lock cleanup on restart, and graceful shutdown when exiting the IDE.
-- **Remote or Custom Server Support**:
-  - Connect to existing remote or local server instances (`mangabar.customServerUrl`) without downloading or running local binaries.
-- **Automatic Storage Migration**:
-  - Automatically migrates existing manga libraries and settings to `~/.mangabar`.
-- **MangaBar Extension Network**:
-  - Pre-configured source repositories for MangaDex, MangaKakalot, ComicK, and hundreds of sources.
+### 🌟 Why MangaBar?
+- 📖 **Embedded Dual-Docking**: Keep your File Explorer open on the left and dock MangaBar in the secondary right sidebar (`auxiliarybar`)—or vice versa with a single click.
+- 🚀 **350+ Sources Pre-Configured**: Instant access to the official Keiyoushi Extension Network including MangaDex, MangaKakalot, ComicK, Asura Scans, and more.
+- 🔍 **Smooth Clamped Zoom & Pan (50% – 400%)**: Smooth `Ctrl + Wheel` or `Ctrl +/-` zoom with strict event isolation—never accidentally zoom your IDE editor fonts.
+- 💾 **Offline Downloads**: Download full chapters to your local drive for uninterrupted offline reading during commutes and flights.
+- ⌨️ **Global Hotkey (`Ctrl+Alt+M`)**: Instantly toggle your manga panel or full editor tab from anywhere in your IDE.
+- 🔒 **Completely Private & Isolated**: Operates offline-first with zero tracking, storing data locally at `~/.mangabar`.
 
 ---
 
-## Keyboard Shortcuts
+## 📸 Visual Showcase
+
+### 1. Split-Screen Coding & Reading
+Dock MangaBar side-by-side with your active code files. Read continuously or single-page while monitoring logs and terminals.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-reader.jpg" alt="MangaBar Split Screen Coding and Reading" width="100%">
+</p>
+
+### 2. Rich 350+ Source Extension Catalog
+One-click install from hundreds of community-maintained manga, manhwa, and comic extensions with automatic repository synchronization.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-extensions.jpg" alt="MangaBar Extension Catalog" width="100%">
+</p>
+
+### 3. Personal Library & Offline Chapter Downloads
+Track your reading progress, organize titles by status (Reading, Completed, Plan to Read), and download chapters for offline use.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-library.jpg" alt="MangaBar Personal Library and Offline Downloads" width="100%">
+</p>
+
+---
+
+## 🚀 Quick Start in 60 Seconds
+
+### Installation
+
+Download the latest `.vsix` from the [GitHub Releases](https://github.com/j-a-y-e-s-h/mangabar/releases/latest) page, then install via command line or IDE UI:
+
+```bash
+# Install via VS Code / IDE CLI
+code --install-extension mangabar-0.2.0.vsix
+```
+
+*Or inside your IDE:*
+1. Open the Extensions View (`Ctrl+Shift+X` or `Cmd+Shift+X`).
+2. Click the **`...`** (Views and More Actions) menu in the top-right corner.
+3. Select **Install from VSIX...** and choose `mangabar-0.2.0.vsix`.
+
+---
+
+### Step-by-Step Setup
+
+1. **Open MangaBar**:
+   - Click the **MangaBar Book Icon** in the Activity Bar (left), or press `Ctrl+Alt+M` (`Cmd+Alt+M` on macOS).
+2. **First-Time Launch**:
+   - MangaBar automatically prepares its local offline engine into `~/.mangabar`.
+3. **Install Your First Source**:
+   - Navigate to **Browse > Extensions**, find your favorite source (e.g. *MangaDex*, *ComicK*, or *MangaKakalot*), and click **Install**.
+4. **Start Reading**:
+   - Search for titles, add them to your personal Library, and enjoy distraction-free reading!
+
+---
+
+## ⌨️ Keyboard Shortcuts & Controls
 
 | Shortcut (Win / Linux) | Shortcut (macOS) | Command | Action |
 |---|---|---|---|
 | `Ctrl+Alt+M` | `Cmd+Alt+M` | `mangabar.toggleReader` | Toggle full reader editor tab (Open / Close) |
 | `Ctrl+Alt+S` | `Cmd+Alt+S` | `mangabar.toggleSidebar` | Focus MangaBar sidebar companion in Activity Bar |
-| `Escape` | `Escape` | Webview Close | Dismiss reader overlay when focused |
+| `Ctrl + Scroll` | `Cmd + Scroll` | Reader Zoom | Zoom image smoothly between **0.5x** and **4.0x** |
+| `Click + Drag` | `Click + Drag` | Reader Pan | Pan around zoomed page smoothly |
+| `Escape` | `Escape` | Dismiss Menu | Dismiss reader overlay or exit back to manga details |
 
 ---
 
-## Extension Repositories & Sources
+## 🛠️ Commands Reference
 
-![Extensions Catalog Preview](media/feature-extensions.jpg)
+Access these commands anytime from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 
-MangaBar comes pre-configured with the official **MangaBar Extension Network**:
-
-```text
-https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json
-```
-
-### Adding Extensions
-1. Open the MangaBar sidebar or Full Reader (`Ctrl+Alt+M`).
-2. Navigate to **Browse > Extensions**.
-3. If prompted, confirm repository synchronization.
-4. Click **Install** next to your preferred manga source.
-5. Browse sources and add titles to your personal Library.
-
----
-
-## Setup Options
-
-### Option A: Automatic Local Server (Default)
-When you first launch MangaBar without a custom server configured, the extension detects whether the server engine binary and Java runtime are installed. If missing, you will be prompted to download dependencies automatically:
-- Automated installation to the local extension environment.
-- Fully offline and isolated from your system Java installation.
-- Default data directory initialized safely at `~/.mangabar`.
-
-### Option B: Connect to Existing or Remote Server
-If you already run a manga server on your machine, a home server, or a NAS:
-1. Open VS Code Settings (`Ctrl+,` or `Cmd+,`).
-2. Search for `mangabar.customServerUrl`.
-3. Set your server endpoint (for example: `http://localhost:4567` or `http://192.168.1.100:4567`).
-4. MangaBar will connect directly to your existing server without launching local binaries.
-
----
-
-## Commands
-
-| Command | Identifier | Description |
+| Command | Command Identifier | Description |
 |---|---|---|
-| **MangaBar: Toggle Side Bar Location** | `mangabar.toggleSideBarLocation` | Toggles MangaBar between Left and Right sidebars |
+| **MangaBar: Toggle Side Bar Location** | `mangabar.toggleSideBarLocation` | Instantly switches MangaBar between Left and Right sidebars |
 | **MangaBar: Toggle Full Reader** | `mangabar.toggleReader` | Toggles the reading panel (`Ctrl+Alt+M`) |
-| **MangaBar: Open Full Reader** | `mangabar.openReader` | Opens the MangaBar WebUI in a main tab |
-| **MangaBar: Toggle MangaBar Sidebar** | `mangabar.toggleSidebar` | Opens the MangaBar sidebar view (`Ctrl+Alt+S`) |
-| **MangaBar: Start Server** | `mangabar.startServer` | Starts the local MangaBar background process |
-| **MangaBar: Stop Server** | `mangabar.stopServer` | Gracefully terminates the background server |
-| **MangaBar: Restart Server** | `mangabar.restartServer` | Restarts the local background process with lock clearance |
-| **MangaBar: Reload View** | `mangabar.reloadView` | Reloads active webview frames |
-| **MangaBar: Change Storage Location** | `mangabar.configureStorage` | Launches folder picker to relocate data path |
-| **MangaBar: Open in External Browser** | `mangabar.openWebBrowser` | Opens active server URL in default system browser |
-
-
+| **MangaBar: Open Full Reader** | `mangabar.openReader` | Opens the full-scale reader in a main editor tab |
+| **MangaBar: Toggle MangaBar Sidebar** | `mangabar.toggleSidebar` | Opens the MangaBar companion in the sidebar |
+| **MangaBar: Start Server** | `mangabar.startServer` | Manually starts the local MangaBar background engine |
+| **MangaBar: Stop Server** | `mangabar.stopServer` | Gracefully shuts down the background server |
+| **MangaBar: Restart Server** | `mangabar.restartServer` | Cleans process locks and restarts the background engine |
+| **MangaBar: Reload View** | `mangabar.reloadView` | Refreshes the active MangaBar webview frame |
+| **MangaBar: Change Storage Location** | `mangabar.configureStorage` | Relocates manga library and download data folder |
+| **MangaBar: Open in External Browser** | `mangabar.openWebBrowser` | Launches current manga page in your default browser |
 
 ---
 
-## Configuration Settings
+## ⚙️ Extension Settings
+
+Customize MangaBar behavior in Settings (`Ctrl+,` or `Cmd+,` > search for `MangaBar`):
 
 | Setting | Default | Description |
 |---|---|---|
-| `mangabar.sideBarLocation` | `"left"` | Placement of MangaBar (`"left"` Activity Bar or `"right"` Secondary Side Bar) |
-| `mangabar.customServerUrl` | `""` | Optional remote or existing server URL (e.g. `http://localhost:4567`) |
-| `mangabar.serverPort` | `4567` | Default HTTP port (auto-increments if in use) |
-| `mangabar.dataDirectory` | `./data` | Directory where MangaBar stores library, database, and settings |
-| `mangabar.downloadDirectory` | `./data/downloads` | Directory for downloaded manga chapters |
-| `mangabar.autoStartServer` | `true` | Automatically launch server when opening the MangaBar view |
-| `mangabar.extensionRepo` | Official Extension Repo URL | Extension repository URL for manga sources |
-| `mangabar.serverDownloadUrl` | `""` | Custom URL or mirror to download the MangaBar Server Engine binary |
+| `mangabar.sideBarLocation` | `"left"` | Preferred dock: `"left"` (Primary Activity Bar) or `"right"` (Secondary Side Bar). |
+| `mangabar.customServerUrl` | `""` | Connect to an existing or remote server instance (e.g., `http://localhost:4567` or `http://192.168.1.100:4567`). |
+| `mangabar.serverPort` | `4567` | Default HTTP port for the engine (auto-selects next available port if busy). |
+| `mangabar.dataDirectory` | `./data` | Directory where MangaBar stores your library, database, and settings (`~/.mangabar`). |
+| `mangabar.downloadDirectory` | `./data/downloads` | Storage path for downloaded offline manga chapters. |
+| `mangabar.autoStartServer` | `true` | Automatically boot the local engine when opening MangaBar. |
+| `mangabar.extensionRepo` | *Keiyoushi URL* | Extension repository URL for community manga sources. |
+| `mangabar.serverDownloadUrl` | `""` | Custom URL or mirror to download the engine binary. |
 
 ---
 
-## Requirements & Compatibility
+## 💻 Compatibility
 
-- **VS Code**: Version `1.85.0` or higher (compatible with Antigravity IDE, Cursor, VSCodium).
-- **Network**: Internet connection required for initial source catalog download and streaming chapters.
+MangaBar runs natively across all major desktop operating systems and modern code editors:
+- **IDEs**: VS Code (`1.85.0+`), Cursor, Windsurf, VSCodium, and Antigravity IDE.
+- **Operating Systems**: Windows 10/11 (x64, arm64), macOS (Intel & Apple Silicon), Linux (Ubuntu, Debian, Fedora, Arch).
+- **Architecture**: Zero cloud dependency; 100% self-hosted and private.
 
 ---
 
-## License
+## 📄 License & Attribution
 
-This project is licensed under the [MIT License](LICENSE).
-All manga content and extensions belong to their respective creators and publishers.
+- Distributed under the [MIT License](LICENSE).
+- Powered by open source community extensions and reader engines. All manga and comic content belongs to their respective creators and publishers.
+- Maintained by [Jayesh](https://github.com/j-a-y-e-s-h) on GitHub.
