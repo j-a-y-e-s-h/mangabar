@@ -382,7 +382,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       font-weight: 600;
     }
     
-    /* 1-Click Keiyoushi Chip */
+    /* 1-Click Extension Network Chip */
     .preset-chip {
       display: flex;
       align-items: center;
@@ -533,10 +533,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       pointer-events: none;
     }
     .loader-brand {
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
       color: var(--vscode-button-background, #007acc);
-      opacity: 0.85;
+      opacity: 0.9;
+      animation: pulseGlow 2.2s infinite ease-in-out;
+    }
+    @keyframes pulseGlow {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.85;
+      }
+      50% {
+        transform: scale(1.08);
+        opacity: 1;
+      }
     }
     .skeleton-stack {
       display: flex;
@@ -681,11 +692,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     <!-- 1-Click Suggestion Preset -->
     <div class="preset-section">
       <div class="preset-label">Suggested Store</div>
-      <div class="preset-chip" onclick="addKeiyoushi()">
+      <div class="preset-chip" onclick="addDefaultExtensionStore()">
         <div class="chip-info">
           <div class="chip-title">
-            <span>Keiyoushi (Official)</span>
-            <span class="verified-badge" title="Verified Community Index">
+            <span>MangaBar Extension Network</span>
+            <span class="verified-badge" title="Verified Extension Network">
               <svg width="9" height="9" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>
             </span>
           </div>
@@ -731,8 +742,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       state === 'RUNNING'
         ? `<div id="iframeLoader" class="iframe-loader">
             <svg class="loader-brand" viewBox="0 0 24 24" fill="none">
-              <path d="M4 19V5l4 5.5L12 5l4 5.5L20 5v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.45"/>
+              <path d="M3 8.5v8.5c2.5-1 5-.5 6 1.5V6.5C7.8 4.8 5.2 4.5 3 5.5v3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M21 8.5v8.5c-2.5-1-5-.5-6 1.5V6.5c1.2-1.7 3.8-2 6-1v3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M8.5 17.5V7l3.5 5 3.5-5v10.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 14v4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M5.5 4.2C7 3.2 8.5 3.5 9.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M18.5 4.2c-1.5-1-3-.7-4 .3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
             </svg>
             <div class="skeleton-stack">
               <div class="skeleton-line"></div>
@@ -772,7 +787,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       `
         : `
         <div class="placeholder-card">
-          <svg class="brand-icon" viewBox="0 0 16 16"><path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.492-3.287.81V2.828zm7.5 9.605c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v-9.92c-.917-.318-2.107-.69-3.287-.81-1.094-.11-2.278-.037-3.213.493v9.746zM0 2.25A1.25 1.25 0 0 1 1.25 1c1.55 0 3.05.45 4.75 1.05C7.25 2.5 8 3 8 3s.75-.5 2-.95c1.7-.6 3.2-1.05 4.75-1.05A1.25 1.25 0 0 1 16 2.25v10.5A1.25 1.25 0 0 1 14.75 14c-1.4 0-2.8-.4-4.25-.9-1-.35-1.5-.6-2.5-.6s-1.5.25-2.5.6c-1.45.5-2.85.9-4.25.9A1.25 1.25 0 0 1 0 12.75V2.25z"/></svg>
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none">
+            <path d="M3 8.5v8.5c2.5-1 5-.5 6 1.5V6.5C7.8 4.8 5.2 4.5 3 5.5v3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M21 8.5v8.5c-2.5-1-5-.5-6 1.5V6.5c1.2-1.7 3.8-2 6-1v3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M8.5 17.5V7l3.5 5 3.5-5v10.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 14v4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M5.5 4.2C7 3.2 8.5 3.5 9.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <path d="M18.5 4.2c-1.5-1-3-.7-4 .3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
           <div class="title">MangaBar Reader</div>
           <div class="subtitle">Read manga seamlessly inside Antigravity with zero external setup.</div>
           <button style="padding: 7px 18px; font-size: 13px;" onclick="send('start')">
@@ -783,7 +805,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           <div class="info-list">
             <div><strong>Port:</strong> ${port}</div>
             <div style="word-break: break-all;"><strong>Data:</strong> ${dataDir}</div>
-            <div><strong>Sources:</strong> Keiyoushi Ready</div>
+            <div><strong>Sources:</strong> Extension Network Ready</div>
           </div>
           
           <button class="secondary" onclick="send('configureStorage')">
@@ -815,7 +837,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    function addKeiyoushi() {
+    function addDefaultExtensionStore() {
       send('addExtensionStore', {
         url: 'https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json'
       });

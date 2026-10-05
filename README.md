@@ -4,7 +4,6 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/MangaBar-v0.2.0-00bcd4?style=flat-square" alt="MangaBar">
-  <a href="https://github.com/keiyoushi/extensions"><img src="https://img.shields.io/badge/Keiyoushi-Extensions-8a2be2?style=flat-square" alt="Keiyoushi Extensions"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-4caf50?style=flat-square" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-333333?style=flat-square" alt="Platforms">
 </p>
@@ -39,7 +38,7 @@
   - Connect to existing remote or local server instances (`mangabar.customServerUrl`) without downloading or running local binaries.
 - **Automatic Storage Migration**:
   - Automatically migrates existing manga libraries and settings to `~/.mangabar`.
-- **Keiyoushi Extension Catalog**:
+- **MangaBar Extension Network**:
   - Pre-configured source repositories for MangaDex, MangaKakalot, ComicK, and hundreds of sources.
 
 ---
@@ -58,7 +57,7 @@
 
 ![Extensions Catalog Preview](media/feature-extensions.jpg)
 
-MangaBar comes pre-configured with the official **Keiyoushi Extension Repository**:
+MangaBar comes pre-configured with the official **MangaBar Extension Network**:
 
 ```text
 https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json
@@ -105,7 +104,7 @@ If you already run a manga server on your machine, a home server, or a NAS:
 | **MangaBar: Change Storage Location** | `mangabar.configureStorage` | Launches folder picker to relocate data path |
 | **MangaBar: Open in External Browser** | `mangabar.openWebBrowser` | Opens active server URL in default system browser |
 
-*(Legacy `mihon.*` command IDs are maintained as transparent forwarding aliases for backward compatibility).*
+
 
 ---
 
@@ -119,7 +118,8 @@ If you already run a manga server on your machine, a home server, or a NAS:
 | `mangabar.dataDirectory` | `./data` | Directory where MangaBar stores library, database, and settings |
 | `mangabar.downloadDirectory` | `./data/downloads` | Directory for downloaded manga chapters |
 | `mangabar.autoStartServer` | `true` | Automatically launch server when opening the MangaBar view |
-| `mangabar.keiyoushiRepo` | Keiyoushi URL | Extension repository URL for manga sources |
+| `mangabar.extensionRepo` | Official Extension Repo URL | Extension repository URL for manga sources |
+| `mangabar.serverDownloadUrl` | `""` | Custom URL or mirror to download the MangaBar Server Engine binary |
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "name": "antigravity-mangabar",
   "displayName": "MangaBar - Manga & Comic Reader",
-  "description": "Read manga, manhwa, and comics directly in your IDE sidebar or full editor tab. An open-source desktop alternative to Mihon & Suwayomi with Keiyoushi source extensions, offline downloads, and customizable dual-side docking.",
+  "description": "Read manga, manhwa, and comics directly in your IDE sidebar or full editor tab. High-performance offline reader with extension catalog, offline downloads, and customizable dual-side docking.",
   "version": "0.2.0",
   "publisher": "local-developer",
   "license": "MIT",
@@ -24,21 +24,14 @@
     "webtoon",
     "comics",
     "reader",
-    "suwayomi",
-    "mihon",
-    "tachiyomi",
-    "keiyoushi"
+    "ide-reader",
+    "offline-reader"
   ],
   "badges": [
     {
       "url": "https://img.shields.io/badge/MangaBar-v0.2.0-00bcd4",
-      "href": "https://github.com/local/antigravity-mangabar",
+      "href": "https://github.com/j-a-y-e-s-h/mangabar",
       "description": "MangaBar Reader"
-    },
-    {
-      "url": "https://img.shields.io/badge/Keiyoushi-Extensions-8a2be2",
-      "href": "https://github.com/keiyoushi/extensions",
-      "description": "Keiyoushi Extensions"
     },
     {
       "url": "https://img.shields.io/badge/License-MIT-4caf50",
@@ -48,7 +41,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/local/antigravity-mangabar"
+    "url": "https://github.com/j-a-y-e-s-h/mangabar"
   },
   "main": "./dist/extension.js",
   "activationEvents": [
@@ -218,17 +211,24 @@
           "default": true,
           "description": "Automatically start the server when opening the MangaBar view"
         },
-        "mangabar.keiyoushiRepo": {
+        "mangabar.extensionRepo": {
           "type": "string",
           "default": "https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json",
           "description": "Extension repository URL for manga sources"
+        },
+        "mangabar.serverDownloadUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Custom URL or mirror to download the MangaBar Server Engine binary"
         }
       }
     }
   },
   "scripts": {
-    "compile": "node esbuild.js",
+    "compile": "node esbuild.js && node scripts/sync-extension.js",
     "watch": "node esbuild.js --watch",
+    "sync-ext": "node scripts/sync-extension.js",
+    "patch-webui": "node scripts/patch-webui.js",
     "package": "npx @vscode/vsce package --no-dependencies"
   },
   "devDependencies": {

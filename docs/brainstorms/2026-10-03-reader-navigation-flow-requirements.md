@@ -17,7 +17,7 @@ This document establishes the user experience standards:
    - **Zero Drawer Overlap**: The floating exit button automatically hides (`display: none`) whenever the reader drawer or app bar is open, completely preventing icon collisions.
    - **Idle Auto-Dimming**: During uninterrupted reading, the floating button automatically dims to `0.08` opacity after 3.5 seconds of inactivity, instantly reviving upon mouse movement or touch.
 3. **100% Silent Background Server Engine**:
-   - Background server launches fully headless (`-Djava.awt.headless=true`, `-Dserver.initialOpenInBrowserEnabled=false`, `-Dserver.systemTrayEnabled=false`), entirely eliminating external browser popups on IDE launch or server start.
+   - Background server launches fully headless (`-Djava.awt.headless=true`, `-Dserver. initialOpenInBrowserEnabled=false`, `-Dserver.systemTrayEnabled=false`), entirely eliminating external browser popups on IDE launch or server start.
 4. **Synchronous Brand & Identity Scrubbing**:
    - Continuous DOM and property interception ensures `<title>` always reflects `MangaBar` without flickering or upstream branding leaks.
    - Favicons and logos are dynamically routed to the official MangaBar SVG monogram (`media/mangabar.svg`).

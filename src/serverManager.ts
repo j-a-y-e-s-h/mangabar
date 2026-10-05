@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as child_process from 'child_process';
 import * as http from 'http';
 import * as net from 'net';
+import * as path from 'path';
+import * as fs from 'fs';
 import { ConfigManager } from './configManager';
 import {
   getServerJarPath,
@@ -11,6 +13,7 @@ import {
   toSafePath,
 } from './installer';
 import { getReaderEnhancerScript } from './readerEnhancer';
+import { patchWebUIDirectories } from './webuiPatcher';
 
 export type ServerState = 'STOPPED' | 'STARTING' | 'RUNNING' | 'ERROR';
 
@@ -39,6 +42,10 @@ export class ServerManager {
     return this.currentPort;
   }
 
+  public showOutputChannel(): void {
+    this.outputChannel.show();
+  }
+
   public getServerUrl(): string {
     const custom = this.configManager.getCustomServerUrl();
     if (custom) {
@@ -64,6 +71,13 @@ export class ServerManager {
     }
 
     return new Promise((resolve) => {
+      // Auto-brand WebUI cache directories on disk upon proxy startup
+      try {
+        patchWebUIDirectories(this.context.extensionPath, this.outputChannel);
+      } catch (err: any) {
+        this.outputChannel.appendLine(`[MangaBar] WebUI disk patch error: ${err.message}`);
+      }
+
       const targetPort = this.currentPort;
       const enhancerCode = getReaderEnhancerScript();
 
@@ -78,16 +92,36 @@ export class ServerManager {
           return;
         }
 
-        // 1b. Serve MangaBar icon for any favicon/logo/touch icon request
+        // 1b. Serve MangaBar PNG/SVG icon for any favicon/logo/touch icon request
         const cleanUrl = (req.url || '').split('?')[0].toLowerCase();
         if (
-          cleanUrl === '/__mangabar_icon.svg' ||
-          cleanUrl.includes('favicon') ||
+          cleanUrl === '/__mangabar_icon.png' ||
           cleanUrl.endsWith('apple-touch-icon.png') ||
+          cleanUrl.endsWith('favicon-96x96.png') ||
+          cleanUrl.endsWith('web-app-manifest-192x192.png') ||
+          cleanUrl.endsWith('web-app-manifest-512x512.png') ||
           cleanUrl.endsWith('logo192.png') ||
-          cleanUrl.endsWith('logo512.png')
+          cleanUrl.endsWith('logo512.png') ||
+          cleanUrl.endsWith('favicon.ico')
         ) {
-          const iconPath = path.join(this.context.extensionPath, 'media', 'mangabar.svg');
+          const iconPngPath = path.join(this.context.extensionPath, 'media', 'icon.png');
+          if (fs.existsSync(iconPngPath)) {
+            const pngData = fs.readFileSync(iconPngPath);
+            res.writeHead(200, {
+              'Content-Type': 'image/png',
+              'Cache-Control': 'public, max-age=86400',
+            });
+            res.end(pngData);
+            return;
+          }
+        }
+
+        if (
+          cleanUrl === '/__mangabar_icon.svg' ||
+          cleanUrl.endsWith('favicon.svg') ||
+          cleanUrl.includes('favicon')
+        ) {
+          const iconPath = path.join(this.context.extensionPath, 'media', 'mangabar-color.svg');
           if (fs.existsSync(iconPath)) {
             const svgData = fs.readFileSync(iconPath, 'utf8');
             res.writeHead(200, {
@@ -107,8 +141,13 @@ export class ServerManager {
             description: 'Manga & Comic Reader',
             icons: [
               {
-                src: '/__mangabar_icon.svg',
+                src: '/apple-touch-icon.png',
                 sizes: '192x192 512x512',
+                type: 'image/png',
+              },
+              {
+                src: '/__mangabar_icon.svg',
+                sizes: 'any',
                 type: 'image/svg+xml',
               },
             ],
@@ -139,7 +178,12 @@ export class ServerManager {
           },
           (upstreamRes) => {
             const contentType = upstreamRes.headers['content-type'] || '';
-            if (contentType.includes('text/html')) {
+            const isHtml = contentType.includes('text/html');
+            const isReaderJs = !!req.url && /\/assets\/Reader-[A-Za-z0-9_-]+\.js(?:\?.*)?$/.test(req.url);
+            const isReaderServiceJs = !!req.url && /\/assets\/ReaderService-[A-Za-z0-9_-]+\.js(?:\?.*)?$/.test(req.url);
+            const isIndexJs = !!req.url && /\/assets\/index(?:-legacy)?-[A-Za-z0-9_-]+\.js(?:\?.*)?$/.test(req.url);
+
+            if (isHtml) {
               let body = '';
               upstreamRes.setEncoding('utf8');
               upstreamRes.on('data', (chunk) => (body += chunk));
@@ -149,8 +193,10 @@ export class ServerManager {
                   .replace(/<title>.*?<\/title>/gi, '<title>MangaBar</title>')
                   .replace(/<meta\s+name="apple-mobile-web-app-title"\s+content=".*?"\s*\/?>/gi, '<meta name="apple-mobile-web-app-title" content="MangaBar" />')
                   .replace(/<meta\s+name="description"\s+content=".*?"\s*\/?>/gi, '<meta name="description" content="MangaBar - Manga & Comic Reader" />')
-                  .replace(/href="\.?\/favicon[^"]*"/gi, 'href="/__mangabar_icon.svg"')
-                  .replace(/href="\.?\/apple-touch-icon[^"]*"/gi, 'href="/__mangabar_icon.svg"')
+                  .replace(/<link[^>]*rel=["'](?:shortcut )?icon["'][^>]*>/gi, '')
+                  .replace(/<link[^>]*rel=["']apple-touch-icon["'][^>]*>/gi, '')
+                  .replace(/https:\/\/github\.com\/(?:Suwayomi|MangaBar)\/(?:Suwayomi-)?(?:Server|WebUI|Engine|MangaBar)(?:%20| )?(?:Engine)?/gi, 'https://github.com/j-a-y-e-s-h/mangabar')
+                  .replace(/https:\/\/discord\.gg\/DDZdqZWaHA/gi, 'https://github.com/j-a-y-e-s-h/mangabar/discussions')
                   .replace(/Suwayomi(-WebUI)?/gi, 'MangaBar')
                   .replace(/Suwayomi-Server/gi, 'MangaBar Engine')
                   .replace(/Suwayomi Server/gi, 'MangaBar Server')
@@ -158,6 +204,15 @@ export class ServerManager {
                   .replace(/Tachidesk/gi, 'MangaBar Core')
                   .replace(/Tachiyomi/gi, 'MangaBar')
                   .replace(/Mihon/gi, 'MangaBar');
+
+                // Inject proper favicon and touch icon tags in head
+                const faviconTags =
+                  '<link rel="icon" type="image/png" href="/apple-touch-icon.png" />' +
+                  '<link rel="icon" type="image/svg+xml" href="/__mangabar_icon.svg" />' +
+                  '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />';
+                if (body.includes('</head>')) {
+                  body = body.replace('</head>', `${faviconTags}</head>`);
+                }
 
                 const injected = body.includes('</body>')
                   ? body.replace('</body>', '<script src="/__mangabar_enhancer.js"></script></body>')
@@ -168,6 +223,53 @@ export class ServerManager {
                 resHeaders['content-type'] = 'text/html; charset=utf-8';
                 res.writeHead(upstreamRes.statusCode || 200, resHeaders);
                 res.end(injected);
+              });
+            } else if (isReaderJs || isReaderServiceJs || isIndexJs) {
+              let body = '';
+              upstreamRes.setEncoding('utf8');
+              upstreamRes.on('data', (chunk) => (body += chunk));
+              upstreamRes.on('end', () => {
+                if (isReaderJs) {
+                  // 1. Rewrite title from "Exit reader" to "Back to Manga"
+                  body = body.replace(/title:\s*\w+\._\(\{\s*id:\s*[`'"]2mxCGH[`'"]\s*\}\)/g, 'title:"Back to Manga"');
+
+                  // 2. Rewrite Wr exit binding in Reader-*.js so clicking the drawer back button dismisses controls instead of exiting manga
+                  body = body.replace(
+                    /\[\(\)\s*=>\s*\(\{\s*exit:\s*([a-zA-Z0-9_$]+)\.useExit\(\)\s*\}\)\]\s*,\s*\[[`'"]exit[`'"]\]/g,
+                    '[()=>({exit:()=>{try{if(window.__MANGABAR_CLOSE_MENU__)window.__MANGABAR_CLOSE_MENU__();else{if(typeof $1!=="undefined"&&$1.updateSetting)$1.updateSetting("isStaticNav",!1);document.dispatchEvent(new KeyboardEvent("keydown",{key:"m",code:"KeyM",bubbles:!0}));document.dispatchEvent(new KeyboardEvent("keyup",{key:"m",code:"KeyM",bubbles:!0}));}}catch(_){}}})],[`exit`]'
+                  );
+
+                  // 3. Rewrite Wr button onClick directly as safeguard
+                  body = body.replace(
+                    /(title:\s*"Back to Manga"[\s\S]*?onClick:\s*)([a-zA-Z0-9_$]+)/g,
+                    '$1()=>{try{if(window.__MANGABAR_CLOSE_MENU__)window.__MANGABAR_CLOSE_MENU__();else{document.dispatchEvent(new KeyboardEvent("keydown",{key:"m",code:"KeyM",bubbles:!0}));document.dispatchEvent(new KeyboardEvent("keyup",{key:"m",code:"KeyM",bubbles:!0}));}}catch(_){}}'
+                  );
+                } else if (isReaderServiceJs) {
+                  // In ReaderService-*.js: Expose window.__MANGABAR_CLOSE_MENU__ and window.__MANGABAR_READER_STORE__
+                  body = body.replace(
+                    /([a-zA-Z0-9_$]+)=\(\)=>([a-zA-Z0-9_$]+)\.getState\(\)\.overlay/g,
+                    '$1=()=>{try{if(typeof window!=="undefined"&&!window.__MANGABAR_CLOSE_MENU__){window.__MANGABAR_READER_STORE__=$2;window.__MANGABAR_CLOSE_MENU__=()=>{try{let s=$2.getState();if(s&&s.updateSetting)s.updateSetting("isStaticNav",!1);if(s&&s.overlay&&s.overlay.setIsVisible)s.overlay.setIsVisible(!1);}catch(_){try{document.dispatchEvent(new KeyboardEvent("keydown",{key:"m",code:"KeyM",bubbles:!0}));document.dispatchEvent(new KeyboardEvent("keyup",{key:"m",code:"KeyM",bubbles:!0}));}catch(__){}}};}}catch(_){};return $2.getState().overlay}'
+                  );
+                } else if (isIndexJs) {
+                  // In index-*.js: Rewrite Suwayomi katakana circle logo in splash/loading screen with MangaBar brand badge
+                  body = body.replace(
+                    /R6\s*=\s*\(\{circleRingColor:e[^}]*\}\)\s*=>[\s\S]*?(?=,z6=)/,
+                    'R6=({circleRingColor:e,circleFillColor:t,...n})=>(0,x.jsx)(rM,{viewBox:`0 0 100 100`,...n,children:(0,x.jsx)(`image`,{href:`/apple-touch-icon.png`,x:`0`,y:`0`,width:`100`,height:`100`})})'
+                  );
+                  body = body.replace(
+                    /nL\s*=\s*\(\{circleRingColor:e[^}]*\}\)\s*=>[\s\S]*?(?=,e\("G"\))/,
+                    'nL=({circleRingColor:e,circleFillColor:t,...n})=>(0,x.jsx)(Kg,{viewBox:"0 0 100 100",...n,children:(0,x.jsx)("image",{href:"/apple-touch-icon.png",x:"0",y:"0",width:"100",height:"100"})})'
+                  );
+                }
+
+                const resHeaders = { ...upstreamRes.headers };
+                delete resHeaders['content-length'];
+                delete resHeaders['content-encoding'];
+                delete resHeaders['etag'];
+                resHeaders['content-type'] = 'application/javascript; charset=utf-8';
+                resHeaders['cache-control'] = 'no-cache, no-store, must-revalidate';
+                res.writeHead(upstreamRes.statusCode || 200, resHeaders);
+                res.end(body);
               });
             } else {
               res.writeHead(upstreamRes.statusCode || 200, upstreamRes.headers);
@@ -256,11 +358,6 @@ export class ServerManager {
     } catch {
       return false;
     }
-  }
-
-  /** Backward-compatible alias */
-  public async isSuwayomiHealthy(port: number): Promise<boolean> {
-    return this.isServerHealthy(port);
   }
 
   private async isPortAvailable(port: number): Promise<boolean> {
@@ -495,14 +592,19 @@ export class ServerManager {
           },
           async (progress) => {
             let lastPercent = 0;
-            await ensureServerJar(extensionRoot, workspaceRoot, (percent, downMB, totalMB) => {
-              const increment = percent - lastPercent;
-              lastPercent = percent;
-              progress.report({
-                increment,
-                message: `${downMB} MB / ${totalMB} MB (${percent}%)`,
-              });
-            });
+            await ensureServerJar(
+              extensionRoot,
+              workspaceRoot,
+              (percent, downMB, totalMB) => {
+                const increment = percent - lastPercent;
+                lastPercent = percent;
+                progress.report({
+                  increment,
+                  message: `${downMB} MB / ${totalMB} MB (${percent}%)`,
+                });
+              },
+              this.configManager.getServerDownloadUrl()
+            );
           }
         );
         this.outputChannel.appendLine('[MangaBar] Binary downloaded successfully.');

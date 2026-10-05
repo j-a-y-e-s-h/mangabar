@@ -14,10 +14,6 @@ export class ConfigManager {
     return vscode.workspace.getConfiguration('mangabar');
   }
 
-  private getLegacyConfig(): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration('mihon');
-  }
-
   public getWorkspaceRoot(): string {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders && workspaceFolders.length > 0) {
@@ -27,16 +23,12 @@ export class ConfigManager {
   }
 
   public getConfiguredPort(): number {
-    const config = this.getConfig();
-    const legacy = this.getLegacyConfig();
-    return config.get<number>('serverPort') ?? legacy.get<number>('serverPort', 4567);
+    return this.getConfig().get<number>('serverPort', 4567);
   }
 
   public getDataDirectory(): string {
     const config = this.getConfig();
-    const legacy = this.getLegacyConfig();
-    const configuredPath =
-      config.get<string>('dataDirectory') ?? legacy.get<string>('dataDirectory');
+    const configuredPath = config.get<string>('dataDirectory');
     if (configuredPath && configuredPath !== './data') {
       if (path.isAbsolute(configuredPath)) {
         return configuredPath;
@@ -53,9 +45,7 @@ export class ConfigManager {
 
   public getDownloadDirectory(): string {
     const config = this.getConfig();
-    const legacy = this.getLegacyConfig();
-    const configuredPath =
-      config.get<string>('downloadDirectory') ?? legacy.get<string>('downloadDirectory');
+    const configuredPath = config.get<string>('downloadDirectory');
     if (configuredPath && configuredPath !== './data/downloads') {
       if (path.isAbsolute(configuredPath)) {
         return configuredPath;
@@ -65,24 +55,22 @@ export class ConfigManager {
     return path.join(this.getDataDirectory(), 'downloads');
   }
 
-  public getKeiyoushiRepoUrl(): string {
+  public getExtensionRepoUrl(): string {
     const config = this.getConfig();
-    const legacy = this.getLegacyConfig();
-    return (
-      config.get<string>('keiyoushiRepo') ??
-      legacy.get<string>(
-        'keiyoushiRepo',
-        'https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json'
-      )
+    return config.get<string>(
+      'extensionRepo',
+      'https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json'
     );
+  }
+
+  public getServerDownloadUrl(): string | undefined {
+    const url = (this.getConfig().get<string>('serverDownloadUrl', '')).trim();
+    return url.length > 0 ? url : undefined;
   }
 
   public getCustomServerUrl(): string | undefined {
     const config = this.getConfig();
-    const legacy = this.getLegacyConfig();
-    const url = (
-      config.get<string>('customServerUrl') ?? legacy.get<string>('customServerUrl', '')
-    ).trim();
+    const url = (config.get<string>('customServerUrl', '')).trim();
     return url.length > 0 ? url : undefined;
   }
 
@@ -92,9 +80,7 @@ export class ConfigManager {
   }
 
   public shouldAutoStart(): boolean {
-    const config = this.getConfig();
-    const legacy = this.getLegacyConfig();
-    return config.get<boolean>('autoStartServer') ?? legacy.get<boolean>('autoStartServer', true);
+    return this.getConfig().get<boolean>('autoStartServer', true);
   }
 
   public async setCustomDataDirectory(newPath: string): Promise<void> {
@@ -108,12 +94,7 @@ export class ConfigManager {
   }
 
   public getSideBarLocation(): 'left' | 'right' {
-    const config = this.getConfig();
-    const legacy = this.getLegacyConfig();
-    return (
-      config.get<'left' | 'right'>('sideBarLocation') ??
-      legacy.get<'left' | 'right'>('sideBarLocation', 'left')
-    );
+    return this.getConfig().get<'left' | 'right'>('sideBarLocation', 'left');
   }
 
   public async setSideBarLocation(location: 'left' | 'right'): Promise<void> {
@@ -122,24 +103,21 @@ export class ConfigManager {
   }
 
   /**
-   * Pre-seeds server.conf with port, downloadDir, and Keiyoushi repository.
-   * Performs automatic seamless migration from ~/.suwayomi if found.
+   * Pre-seeds server.conf with port, downloadDir, and extension repository.
    */
   public prepareDataDirectory(port: number): string {
     const dataDir = this.getDataDirectory();
     const downloadDir = this.getDownloadDirectory();
-    const repoUrl = this.getKeiyoushiRepoUrl();
-
-    // Check for automatic migration from legacy ~/.suwayomi
-    const legacyHomeSuwayomi = path.join(os.homedir(), '.suwayomi');
+    const repoUrl = this.getExtensionRepoUrl();
+    const legacyDataHome = path.join(os.homedir(), '.suwayomi');
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
 
-      if (fs.existsSync(legacyHomeSuwayomi)) {
+      if (fs.existsSync(legacyDataHome)) {
         try {
-          const files = fs.readdirSync(legacyHomeSuwayomi);
+          const files = fs.readdirSync(legacyDataHome);
           for (const file of files) {
-            const src = path.join(legacyHomeSuwayomi, file);
+            const src = path.join(legacyDataHome, file);
             const dst = path.join(dataDir, file);
             if (!fs.existsSync(dst) && !file.includes('lock')) {
               try {

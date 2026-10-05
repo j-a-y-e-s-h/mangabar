@@ -98,3 +98,14 @@ This includes:
 - Rename class `SuwayomiClient` to `MangaBarClient`.
 - Rename `media/mihon.svg` to `media/mangabar.svg`.
 - Clean up all code comments, log prefixes (`[MangaBar]`), error messages, and documentation (`README.md`, `CHANGELOG.md`).
+
+### R35: Brand Identity, Activity Bar Icon & WebUI Splash Screen Replacement
+- **Brand Symbol**: Open illuminated book with integrated central "M" monogram spine, fanned top page crest accents, dark squircle container (`#181822`), and radial purple ambient glow (`#a855f7`).
+- **Activity Bar Icon (`media/icon.png`)**: Primary Activity Bar icon configured as PNG (`media/icon.png`) in `package.json` (`viewsContainers.activitybar[0].icon`), displaying the full vibrant MangaBar badge.
+- **Active Extension Synchronization**: Automated sync script during compile that copies `dist/`, `media/`, and `package.json` into `C:\Users\Admin\.antigravity-ide\extensions\local-developer.antigravity-mangabar-0.2.0` so Antigravity IDE immediately runs the latest assets upon window reload.
+- **Permanent WebUI Asset Patching**: Directly patch the WebUI distribution in `C:\Users\Admin\AppData\Local\Tachidesk\webUI`:
+  - `favicon.svg` replaced with MangaBar SVG.
+  - `apple-touch-icon.png`, `favicon-96x96.png`, `web-app-manifest-192x192.png`, `web-app-manifest-512x512.png` replaced with MangaBar brand icon.
+  - In `assets/index-BD8EcPZF.js` and `assets/index-legacy-B4bgfkQg.js`, patch the `R6` component to permanently eliminate the Japanese katakana **「スワ」** circle and replace it with the MangaBar Book + 'M' logo with pulse glow.
+- **Runtime Proxy Safeguard**: Reverse proxy in `src/serverManager.ts` dynamically intercepts in-flight requests for `/__mangabar_icon.svg`, `/favicon*`, `/assets/index-*.js`, and HTML `<title>` tags to guarantee zero brand leakage in both embedded webviews and external browsers.
+- **Sidebar Loading State**: Custom keyframe pulse-glow animation (`pulseGlow`) applied to `.loader-brand` in the extension sidebar webview.

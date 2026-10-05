@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Transparent reverse-proxy HTML interceptor and DOM Brand Sanitizer dynamically scrubbing upstream names in the embedded WebUI.
   - Storage directory migrated to `~/.mangabar` with automatic non-destructive migration of existing libraries and settings.
   - Server binary renamed to `mangabar-server.jar`.
-  - All command IDs transitioned to `mangabar.*` with transparent forwarding aliases for legacy `mihon.*` commands.
+  - All command IDs transitioned to `mangabar.*`.
 - **Dual Sidebar Placement (Left vs Right)**:
   - Added 1-click header toolbar button to switch MangaBar between Primary Activity Bar (left) and Secondary Side Bar (`auxiliarybar` on the right).
   - Introduced configuration setting `mangabar.sideBarLocation`: `"left"` | `"right"`.
@@ -51,8 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Flexible Server Options**:
   - Support for `mangabar.customServerUrl` to connect directly to an existing local or remote server without launching local Java binaries.
   - Explicit user setup prompt for downloading server dependencies or specifying a remote server endpoint.
-- **Keiyoushi Repository Integration**:
-  - Direct 1-click addition of the official Keiyoushi manga extension repository (`index.min.json`).
+- **Extension Repository Integration**:
+  - Direct 1-click addition of the official manga extension repository (`index.min.json`).
   - Extensions view shortcuts and quick-copy repository URLs.
 - **Customizable Storage Path**:
   - Configure custom library and download directories via VS Code settings or sidebar folder picker.

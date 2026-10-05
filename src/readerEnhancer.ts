@@ -321,15 +321,15 @@ export function getReaderEnhancerScript(): string {
     const inControls = btn.closest('[class*="drawer"], [class*="Drawer"], [class*="MuiDrawer"], header, [class*="MuiAppBar"], [class*="topBar"]');
     if (!inControls) return false;
 
-    // Check if button has ArrowBack icon or aria-label
-    const hasBackSvg = btn.querySelector('svg path[d*="M20 11H7.83"], svg path[d*="M19 12"], svg[data-testid="ArrowBackIcon"], svg');
-    const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
-    const isBackLabel = ariaLabel.includes('back') || ariaLabel.includes('close') || ariaLabel.includes('navigate_before');
+    // Check if button text, title, or aria-label matches back/exit/close
+    const label = ((btn.getAttribute('aria-label') || '') + ' ' + (btn.getAttribute('title') || '') + ' ' + (btn.innerText || '')).toLowerCase();
+    const isBackOrExit = label.includes('back') || label.includes('exit') || label.includes('close') || label.includes('manga');
 
+    const hasBackSvg = btn.querySelector('svg path[d*="M20 11H7.83"], svg path[d*="M19 12"], svg path[d*="M12 20"], svg[data-testid="ArrowBackIcon"], svg');
     const rect = btn.getBoundingClientRect();
-    const isTopLeft = rect.top < 120 && rect.left < 120;
+    const isTopCorner = rect.top < 150 && (rect.left < 150 || (window.innerWidth - rect.right) < 150);
 
-    return !!(isBackLabel || (isTopLeft && hasBackSvg));
+    return !!(isBackOrExit || (isTopCorner && hasBackSvg));
   }
 
   // Intercept click on reader menu back arrow
@@ -345,33 +345,43 @@ export function getReaderEnhancerScript(): string {
   }, true); // Capture phase to intercept before React router
 
   function dismissReaderControls() {
-    // 1. Dispatch Escape key to dismiss overlay
-    const escEvent = new KeyboardEvent('keydown', {
-      key: 'Escape',
-      code: 'Escape',
-      keyCode: 27,
-      which: 27,
-      bubbles: true,
-      cancelable: true,
-    });
-    document.dispatchEvent(escEvent);
-
-    // 2. Click backdrop if present
-    const backdrop = document.querySelector('[class*="MuiBackdrop-root"], [class*="backdrop"]');
-    if (backdrop) {
-      backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    // 1. Call injected window.__MANGABAR_CLOSE_MENU__ if available
+    try {
+      if (typeof window.__MANGABAR_CLOSE_MENU__ === 'function') {
+        window.__MANGABAR_CLOSE_MENU__();
+      }
+    } catch (err) {
+      console.warn('[MangaBar] __MANGABAR_CLOSE_MENU__ error:', err);
     }
 
-    // 3. Simulate clicking center touch zone if Escape did not close it
-    setTimeout(() => {
-      const centerX = Math.floor(window.innerWidth / 2);
-      const centerY = Math.floor(window.innerHeight / 2);
-      const centerEl = document.elementFromPoint(centerX, centerY);
-      if (centerEl && !centerEl.closest('button, input, select, textarea, [class*="MuiAppBar"], [class*="drawer"], [class*="Drawer"]')) {
-        centerEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: centerX, clientY: centerY }));
+    // 2. Direct Zustand store manipulation if exposed
+    try {
+      if (window.__MANGABAR_READER_STORE__ && window.__MANGABAR_READER_STORE__.getState) {
+        const store = window.__MANGABAR_READER_STORE__.getState();
+        if (store && store.updateSetting) {
+          store.updateSetting('isStaticNav', false);
+        }
+        if (store && store.overlay && store.overlay.setIsVisible) {
+          store.overlay.setIsVisible(false);
+        }
       }
+    } catch (_) {}
+
+    // 3. Dispatch native KeyM keyboard hotkey (Suwayomi built-in TOGGLE_MENU hook)
+    try {
+      const keyMDown = new KeyboardEvent('keydown', { key: 'm', code: 'KeyM', bubbles: true, cancelable: true });
+      document.dispatchEvent(keyMDown);
+      const keyMUp = new KeyboardEvent('keyup', { key: 'm', code: 'KeyM', bubbles: true, cancelable: true });
+      document.dispatchEvent(keyMUp);
+    } catch (_) {}
+
+    // 4. Update floating exit button visibility after drawer transition
+    setTimeout(() => {
       updateFloatingExitButtonVisibility();
     }, 60);
+    setTimeout(() => {
+      updateFloatingExitButtonVisibility();
+    }, 250);
   }
 
   /* ──────────────────────────────────────────────────────────

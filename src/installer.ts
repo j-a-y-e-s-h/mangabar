@@ -7,8 +7,8 @@ import { URL } from 'url';
 
 export const SERVER_VERSION = 'v2.4.2366';
 export const JAR_FILENAME = 'mangabar-server.jar';
-export const LEGACY_JAR_FILENAME = `Suwayomi-Server-${SERVER_VERSION}.jar`;
-export const DOWNLOAD_URL = `https://github.com/Suwayomi/Suwayomi-Server/releases/download/${SERVER_VERSION}/${LEGACY_JAR_FILENAME}`;
+export const DEFAULT_SERVER_DOWNLOAD_URL = `https://github.com/j-a-y-e-s-h/mangabar/releases/download/${SERVER_VERSION}/mangabar-server.jar`;
+export const FALLBACK_SERVER_DOWNLOAD_URL = `https://github.com/Suwayomi/Suwayomi-Server/releases/download/${SERVER_VERSION}/Suwayomi-Server-${SERVER_VERSION}.jar`;
 export const ADOPTIUM_JRE21_URL =
   'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_windows_hotspot_21.0.12.1_1.zip';
 
@@ -34,16 +34,21 @@ export function getServerJarPath(extensionRoot: string, workspaceRoot?: string):
     }
   }
 
-  // 2. Check if legacy jar exists, and copy/rename it to mangabar-server.jar
+  // 2. Check if any valid server engine jar exists and rename to mangabar-server.jar
   for (const dir of candidateDirs) {
-    const legacyJar = path.join(dir, LEGACY_JAR_FILENAME);
-    if (fs.existsSync(legacyJar) && fs.statSync(legacyJar).size > 150 * 1024 * 1024) {
-      const preferred = path.join(dir, JAR_FILENAME);
-      try {
-        fs.copyFileSync(legacyJar, preferred);
-        return preferred;
-      } catch {
-        return legacyJar;
+    if (!fs.existsSync(dir)) continue;
+    for (const file of fs.readdirSync(dir)) {
+      if (file.endsWith('.jar') && file !== JAR_FILENAME) {
+        const fullPath = path.join(dir, file);
+        if (fs.statSync(fullPath).size > 150 * 1024 * 1024) {
+          const preferred = path.join(dir, JAR_FILENAME);
+          try {
+            fs.copyFileSync(fullPath, preferred);
+            return preferred;
+          } catch {
+            return fullPath;
+          }
+        }
       }
     }
   }
@@ -302,7 +307,8 @@ export async function downloadFileWithRedirects(
 export async function ensureServerJar(
   extensionRoot: string,
   workspaceRoot?: string,
-  onProgress?: (percent: number, downloadedMB: string, totalMB: string) => void
+  onProgress?: (percent: number, downloadedMB: string, totalMB: string) => void,
+  customDownloadUrl?: string
 ): Promise<string> {
   const jarPath = getServerJarPath(extensionRoot, workspaceRoot);
 
@@ -310,14 +316,32 @@ export async function ensureServerJar(
     return jarPath;
   }
 
-  await downloadFileWithRedirects(DOWNLOAD_URL, jarPath, (downloaded, total) => {
-    if (onProgress && total > 0) {
-      const percent = Math.min(100, Math.round((downloaded / total) * 100));
-      const downloadedMB = (downloaded / (1024 * 1024)).toFixed(1);
-      const totalMB = (total / (1024 * 1024)).toFixed(1);
-      onProgress(percent, downloadedMB, totalMB);
+  const downloadUrl = customDownloadUrl || DEFAULT_SERVER_DOWNLOAD_URL;
+
+  try {
+    await downloadFileWithRedirects(downloadUrl, jarPath, (downloaded, total) => {
+      if (onProgress && total > 0) {
+        const percent = Math.min(100, Math.round((downloaded / total) * 100));
+        const downloadedMB = (downloaded / (1024 * 1024)).toFixed(1);
+        const totalMB = (total / (1024 * 1024)).toFixed(1);
+        onProgress(percent, downloadedMB, totalMB);
+      }
+    });
+  } catch (err: any) {
+    if (!customDownloadUrl && downloadUrl !== FALLBACK_SERVER_DOWNLOAD_URL) {
+      // Fallback to upstream release asset if GitHub repo release is pending
+      await downloadFileWithRedirects(FALLBACK_SERVER_DOWNLOAD_URL, jarPath, (downloaded, total) => {
+        if (onProgress && total > 0) {
+          const percent = Math.min(100, Math.round((downloaded / total) * 100));
+          const downloadedMB = (downloaded / (1024 * 1024)).toFixed(1);
+          const totalMB = (total / (1024 * 1024)).toFixed(1);
+          onProgress(percent, downloadedMB, totalMB);
+        }
+      });
+    } else {
+      throw err;
     }
-  });
+  }
 
   return jarPath;
 }

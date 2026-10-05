@@ -12,7 +12,7 @@ export interface ExtensionsSummary {
 }
 
 export class MangaBarClient {
-  public static readonly KEIYOUSHI_DEFAULT_REPO =
+  public static readonly DEFAULT_EXTENSION_REPO =
     'https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json';
 
   /**
@@ -22,17 +22,17 @@ export class MangaBarClient {
   public static normalizeRepoUrl(inputUrl: string): string {
     const trimmed = inputUrl.trim();
     if (!trimmed) {
-      return this.KEIYOUSHI_DEFAULT_REPO;
+      return this.DEFAULT_EXTENSION_REPO;
     }
 
-    // Convert github.com/keiyoushi/extensions or extensions-source
+    // Convert standard extensions repository shorthand
     if (
       trimmed === 'https://github.com/keiyoushi/extensions' ||
       trimmed === 'https://github.com/keiyoushi/extensions/' ||
       trimmed === 'https://github.com/keiyoushi/extensions-source' ||
       trimmed === 'https://github.com/keiyoushi/extensions-source/'
     ) {
-      return this.KEIYOUSHI_DEFAULT_REPO;
+      return this.DEFAULT_EXTENSION_REPO;
     }
 
     // Generic github.com/<user>/<repo> conversion to raw repo index.min.json if applicable
@@ -41,7 +41,7 @@ export class MangaBarClient {
       const user = ghMatch[1];
       const repo = ghMatch[2].replace(/\.git$/, '');
       if (user.toLowerCase() === 'keiyoushi') {
-        return this.KEIYOUSHI_DEFAULT_REPO;
+        return this.DEFAULT_EXTENSION_REPO;
       }
       return `https://raw.githubusercontent.com/${user}/${repo}/repo/index.min.json`;
     }
@@ -179,6 +179,3 @@ export class MangaBarClient {
     return summary.totalCount;
   }
 }
-
-/** Compatibility alias */
-export const SuwayomiClient = MangaBarClient;

@@ -40,6 +40,8 @@ export class ReaderPanel {
       }
     );
 
+    panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'mangabar.svg');
+
     ReaderPanel.currentPanel = new ReaderPanel(panel, extensionUri, serverManager);
   }
 

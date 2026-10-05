@@ -71,11 +71,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
 
     vscode.commands.registerCommand('mangabar.toggleSidebar', async () => {
-      try {
-        await vscode.commands.executeCommand('workbench.view.extension.mangabar-sidebar');
-      } catch {
-        await vscode.commands.executeCommand('workbench.view.extension.mihon-sidebar');
-      }
+      await vscode.commands.executeCommand('workbench.view.extension.mangabar-sidebar');
     }),
 
     vscode.commands.registerCommand('mangabar.toggleSideBarLocation', async () => {
@@ -83,29 +79,21 @@ export function activate(context: vscode.ExtensionContext) {
       const newLocation = currentLocation === 'left' ? 'right' : 'left';
       await configManager.setSideBarLocation(newLocation);
 
-      // Focus the view first so move commands target MangaBar
-      try {
-        await vscode.commands.executeCommand('mangabar.sidebarView.focus');
-      } catch {
-        await vscode.commands.executeCommand('mihon.sidebarView.focus');
+      // Ensure the target side bar is visible
+      if (newLocation === 'right') {
+        try {
+          await vscode.commands.executeCommand('workbench.action.toggleAuxiliaryBar');
+        } catch {}
       }
 
       if (newLocation === 'right') {
-        try {
-          await vscode.commands.executeCommand('workbench.action.moveFocusedView');
-        } catch {
-          await vscode.commands.executeCommand('workbench.action.toggleAuxiliaryBar');
-        }
         vscode.window.showInformationMessage(
-          'MangaBar docking location set to Right (Secondary Side Bar). You can also drag the MangaBar icon between sidebars.',
+          'MangaBar moved to Right Side Bar. If it did not move, drag the book icon in the Activity Bar to the right panel.',
           'Got it'
         );
       } else {
-        try {
-          await vscode.commands.executeCommand('workbench.action.moveFocusedView');
-        } catch {}
         vscode.window.showInformationMessage(
-          'MangaBar docking location set to Left (Primary Activity Bar).',
+          'MangaBar moved to Left Activity Bar. If it did not move, drag the book icon to the left Activity Bar.',
           'Got it'
         );
       }
@@ -143,6 +131,7 @@ export function activate(context: vscode.ExtensionContext) {
           cancellable: false,
         },
         async (progress) => {
+          if (!serverManager) return;
           progress.report({ message: 'Releasing locks & terminating process...' });
           const success = await serverManager.restartServer();
           sidebarProvider.reloadView();
@@ -187,27 +176,7 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Backward compatibility aliases for legacy mihon.* commands
-  const legacyAliases: string[] = [
-    'toggleReader',
-    'toggleSidebar',
-    'toggleSideBarLocation',
-    'openReader',
-    'startServer',
-    'stopServer',
-    'reloadView',
-    'restartServer',
-    'openWebBrowser',
-    'configureStorage',
-  ];
 
-  for (const cmd of legacyAliases) {
-    context.subscriptions.push(
-      vscode.commands.registerCommand(`mihon.${cmd}`, (...args: any[]) => {
-        return vscode.commands.executeCommand(`mangabar.${cmd}`, ...args);
-      })
-    );
-  }
 }
 
 export async function deactivate() {
