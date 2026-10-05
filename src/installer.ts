@@ -6,8 +6,9 @@ import * as child_process from 'child_process';
 import { URL } from 'url';
 
 export const SERVER_VERSION = 'v2.4.2366';
+export const RELEASE_TAG = 'v0.2.0';
 export const JAR_FILENAME = 'mangabar-server.jar';
-export const DEFAULT_SERVER_DOWNLOAD_URL = `https://github.com/j-a-y-e-s-h/mangabar/releases/download/${SERVER_VERSION}/mangabar-server.jar`;
+export const DEFAULT_SERVER_DOWNLOAD_URL = `https://github.com/j-a-y-e-s-h/mangabar/releases/download/${RELEASE_TAG}/mangabar-server.jar`;
 export const FALLBACK_SERVER_DOWNLOAD_URL = `https://github.com/Suwayomi/Suwayomi-Server/releases/download/${SERVER_VERSION}/Suwayomi-Server-${SERVER_VERSION}.jar`;
 export const ADOPTIUM_JRE21_URL =
   'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_windows_hotspot_21.0.12.1_1.zip';
