@@ -1,7 +1,9 @@
 # MangaBar - Manga & Comic Reader for VS Code & Modern IDEs
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" alt="MangaBar - Manga & Comic Reader for VS Code" width="100%">
+  <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" target="_blank">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" alt="MangaBar - Manga & Comic Reader for VS Code" width="100%">
+  </a>
 </p>
 
 <p align="center">
@@ -33,21 +35,27 @@
 Dock MangaBar side-by-side with your active code files. Read continuously or single-page while monitoring logs and terminals.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-reader.jpg" alt="MangaBar Split Screen Coding and Reading" width="100%">
+  <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-reader.jpg" target="_blank">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-reader.jpg" alt="MangaBar Split Screen Coding and Reading" width="100%">
+  </a>
 </p>
 
 ### 2. Rich 350+ Source Extension Catalog
 One-click install from hundreds of community-maintained manga, manhwa, and comic extensions with automatic repository synchronization.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-extensions.jpg" alt="MangaBar Extension Catalog" width="100%">
+  <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-extensions.jpg" target="_blank">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-extensions.jpg" alt="MangaBar Extension Catalog" width="100%">
+  </a>
 </p>
 
 ### 3. Personal Library & Offline Chapter Downloads
 Track your reading progress, organize titles by status (Reading, Completed, Plan to Read), and download chapters for offline use.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-library.jpg" alt="MangaBar Personal Library and Offline Downloads" width="100%">
+  <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-library.jpg" target="_blank">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-library.jpg" alt="MangaBar Personal Library and Offline Downloads" width="100%">
+  </a>
 </p>
 
 ---
