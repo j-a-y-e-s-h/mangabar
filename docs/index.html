@@ -23,7 +23,7 @@
   <meta name="twitter:description" content="Read manga, manhwa, webtoons, and comics seamlessly inside VS Code, Cursor & any modern IDE.">
   <meta name="twitter:image" content="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png">
 
-  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/icon.png">
+  <link rel="icon" type="image/png" href="./media/icon.png">
 
   <!-- Schema.org JSON-LD for Google & LLM Crawlers -->
   <script type="application/ld+json">
@@ -115,12 +115,12 @@
     .btn-secondary { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); }
     .btn-secondary:hover { border-color: var(--accent); transform: translateY(-2px); }
     .banner-wrapper { text-align: center; margin: 2rem 0; }
-    .banner-wrapper img { width: 100%; max-width: 1000px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .banner-wrapper img { width: 100%; height: auto; max-width: 1000px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 3rem 0; }
     .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; backdrop-filter: blur(10px); }
     .card h3 { font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--accent); }
     .card p { color: var(--text-muted); font-size: 0.95rem; }
-    .card img { width: 100%; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border); }
+    .card img { width: 100%; height: auto; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border); }
     .faq { margin: 3rem 0; }
     .faq h2 { font-size: 1.8rem; margin-bottom: 1.5rem; text-align: center; }
     .faq-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem; padding: 1.2rem; }
@@ -150,7 +150,10 @@
       </div>
 
       <div class="banner-wrapper">
-        <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" alt="MangaBar Hero Banner">
+        <picture>
+          <source srcset="./media/hero-banner.webp" type="image/webp">
+          <img src="./media/hero-banner.jpg" alt="MangaBar Hero Banner" width="1376" height="768" decoding="async">
+        </picture>
       </div>
     </header>
 
@@ -158,17 +161,26 @@
       <div class="card">
         <h3>⚡ Dual-Docking & Split Screen</h3>
         <p>Keep your code files on the left and read manga on the right sidebar—or expand to a full distraction-free editor tab with Ctrl+Alt+M.</p>
-        <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-reader.jpg" alt="Split screen coding and reading">
+        <picture>
+          <source srcset="./media/feature-reader.webp" type="image/webp">
+          <img src="./media/feature-reader.jpg" alt="Split screen coding and reading" width="1376" height="768" loading="lazy" decoding="async">
+        </picture>
       </div>
       <div class="card">
         <h3>🚀 350+ Source Extensions</h3>
         <p>Instant access to community catalogs via Keiyoushi: MangaDex, ComicK, MangaKakalot, Asura Scans, Flame Comics and international sources.</p>
-        <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-extensions.jpg" alt="Extension catalog">
+        <picture>
+          <source srcset="./media/feature-extensions.webp" type="image/webp">
+          <img src="./media/feature-extensions.jpg" alt="Extension catalog" width="1376" height="768" loading="lazy" decoding="async">
+        </picture>
       </div>
       <div class="card">
         <h3>💾 Offline Downloads & Library</h3>
         <p>Download full chapters for flights and commutes. Save reading status, track history, and customize storage in ~/.mangabar.</p>
-        <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-library.jpg" alt="Personal library">
+        <picture>
+          <source srcset="./media/feature-library.webp" type="image/webp">
+          <img src="./media/feature-library.jpg" alt="Personal library" width="1376" height="768" loading="lazy" decoding="async">
+        </picture>
       </div>
     </section>
 

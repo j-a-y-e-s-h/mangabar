@@ -1,8 +1,8 @@
 # MangaBar — Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor & More)
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" alt="MangaBar — Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor, Windsurf & VSCodium)" width="100%">
+  <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.jpg" target="_blank">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.jpg" alt="MangaBar — Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor, Windsurf & VSCodium)" width="100%" decoding="async">
   </a>
 </p>
 
@@ -53,7 +53,7 @@ Dock MangaBar side-by-side with your active code files. Read continuously or sin
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-reader.jpg" target="_blank">
-    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-reader.jpg" alt="MangaBar Split Screen Coding and Reading" width="100%">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-reader.jpg" alt="MangaBar Split Screen Coding and Reading" width="100%" loading="lazy" decoding="async">
   </a>
 </p>
 
@@ -62,7 +62,7 @@ One-click install from hundreds of community-maintained manga, manhwa, and comic
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-extensions.jpg" target="_blank">
-    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-extensions.jpg" alt="MangaBar Extension Catalog" width="100%">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-extensions.jpg" alt="MangaBar Extension Catalog" width="100%" loading="lazy" decoding="async">
   </a>
 </p>
 
@@ -71,7 +71,7 @@ Track your reading progress, organize titles by status (Reading, Completed, Plan
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-library.jpg" target="_blank">
-    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-library.jpg" alt="MangaBar Personal Library and Offline Downloads" width="100%">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-library.jpg" alt="MangaBar Personal Library and Offline Downloads" width="100%" loading="lazy" decoding="async">
   </a>
 </p>
 
