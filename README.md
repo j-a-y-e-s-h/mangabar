@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/visual-studio-marketplace/v/j-a-y-e-s-h.mangabar?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=Marketplace" alt="VS Code Marketplace"></a>
+  <a href="https://open-vsx.org/extension/j-a-y-e-s-h/mangabar"><img src="https://img.shields.io/badge/Open%20VSX-v0.2.0-7c3aed?style=for-the-badge&logo=eclipseide&logoColor=white" alt="Open VSX Registry"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/visual-studio-marketplace/i/j-a-y-e-s-h.mangabar?style=for-the-badge&color=00bcd4" alt="Installs"></a>
   <a href="https://github.com/j-a-y-e-s-h/mangabar/stargazers"><img src="https://img.shields.io/github/stars/j-a-y-e-s-h/mangabar?style=for-the-badge&color=f1c40f&logo=github" alt="GitHub Stars"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-4caf50?style=for-the-badge" alt="License: MIT"></a>

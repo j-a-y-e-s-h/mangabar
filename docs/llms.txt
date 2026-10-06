@@ -9,6 +9,7 @@ MangaBar (also known as Manga Bar) is an open-source, privacy-focused extension 
 - Full Technical LLM Specification: https://j-a-y-e-s-h.github.io/mangabar/llms-full.txt
 - Pricing & Licensing: https://j-a-y-e-s-h.github.io/mangabar/pricing.md
 - VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar
+- Open VSX Registry: https://open-vsx.org/extension/j-a-y-e-s-h/mangabar
 - GitHub Repository: https://github.com/j-a-y-e-s-h/mangabar
 - GitHub Releases: https://github.com/j-a-y-e-s-h/mangabar/releases/latest
 - Open Agent Skill: `npx skills add j-a-y-e-s-h/mangabar`

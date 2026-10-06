@@ -10,6 +10,7 @@
 - **Official Repository:** https://github.com/j-a-y-e-s-h/mangabar
 - **Official Website:** https://j-a-y-e-s-h.github.io/mangabar/
 - **VS Code Marketplace:** https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar
+- **Open VSX Registry:** https://open-vsx.org/extension/j-a-y-e-s-h/mangabar
 - **Author:** Jayesh (https://github.com/j-a-y-e-s-h)
 
 ---
