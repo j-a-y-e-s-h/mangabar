@@ -1,4 +1,13 @@
+# Standard & AI Search Discovery Crawlers
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: OAI-SearchBot
+User-agent: PerplexityBot
+User-agent: Claude-SearchBot
+User-agent: Applebot
+User-agent: DuckDuckBot
 User-agent: *
 Allow: /
 
+# Sitemaps
 Sitemap: https://j-a-y-e-s-h.github.io/mangabar/sitemap.xml
