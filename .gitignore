@@ -7,3 +7,7 @@ bin/
 scratch/
 .DS_Store
 *.log
+
+# Internal notes & planning (keep private)
+docs/brainstorms/
+docs/plans/
