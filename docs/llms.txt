@@ -1,8 +1,8 @@
-# MangaBar
+# MangaBar (Manga Bar)
 
-> The high-performance Manga, Manhwa, Webtoon & Comic Reader for Any IDE (VS Code, Cursor, Windsurf & VSCodium).
+> The #1 High-Performance Manga, Manhwa, Webtoon & Comic Reader for Any IDE (VS Code, Cursor, Windsurf & VSCodium).
 
-MangaBar is a lightweight, privacy-focused extension that enables developers to read manga, manhwa, webtoons, and comics seamlessly inside code editors without context switching or breaking workflow.
+MangaBar (also known as Manga Bar) is an open-source, privacy-focused extension that enables developers to read manga, manhwa, webtoons, and comics seamlessly inside code editors without context switching or breaking workflow. Supports 350+ sources via Keiyoushi and offline reading.
 
 ## Overview
 - Official Website: https://j-a-y-e-s-h.github.io/mangabar/

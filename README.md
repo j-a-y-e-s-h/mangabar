@@ -1,8 +1,8 @@
-# MangaBar — Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor & More)
+# MangaBar (Manga Bar) — #1 Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor & More)
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.jpg" target="_blank">
-    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.jpg" alt="MangaBar — Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor, Windsurf & VSCodium)" width="100%" decoding="async">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.jpg" alt="MangaBar (Manga Bar) — Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor, Windsurf & VSCodium)" width="100%" decoding="async">
   </a>
 </p>
 
@@ -35,7 +35,7 @@
 
 ## ⚡ Read Manga Directly Inside Your Development Workspace
 
-**MangaBar** is a lightweight, high-performance manga, manhwa, webtoon, and comic reader crafted specifically for code editors and IDEs. Whether you're waiting for a build to finish, tests to pass, or taking a quick micro-break between coding sprints, MangaBar lets you read seamlessly without switching windows, losing focus, or breaking your development flow.
+**MangaBar** (also commonly searched as **Manga Bar**) is a lightweight, high-performance manga, manhwa, webtoon, and comic reader crafted specifically for code editors and IDEs. Whether you're waiting for a build to finish, tests to pass, or taking a quick micro-break between coding sprints, MangaBar lets you read seamlessly without switching windows, losing focus, or breaking your development flow.
 
 ### 🌟 Why MangaBar?
 - 📖 **Embedded Dual-Docking**: Keep your File Explorer open on the left and dock MangaBar in the secondary right sidebar (`auxiliarybar`)—or vice versa with a single click.
