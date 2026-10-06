@@ -110,6 +110,14 @@
       },
       {
         "@type": "Question",
+        "name": "Is Manga Bar free and safe to use?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! MangaBar is 100% free and open-source under the MIT license with zero telemetry, no tracking, and no ads."
+        }
+      },
+      {
+        "@type": "Question",
         "name": "Does zooming in MangaBar change my IDE font size?",
         "acceptedAnswer": {
           "@type": "Answer",
@@ -122,56 +130,608 @@
 
   <style>
     :root {
-      --bg: #090d16;
-      --card-bg: rgba(22, 27, 34, 0.7);
-      --accent: #00bcd4;
-      --accent-glow: rgba(0, 188, 212, 0.3);
-      --text: #f0f6fc;
-      --text-muted: #8b949e;
-      --border: #30363d;
-      --radius: 12px;
+      --bg: #07090e;
+      --bg-surface: #0e121b;
+      --card-bg: rgba(18, 24, 38, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover-border: rgba(0, 229, 255, 0.35);
+      --accent: #00e5ff;
+      --accent-glow: rgba(0, 229, 255, 0.3);
+      --accent-purple: #a855f7;
+      --accent-purple-glow: rgba(168, 85, 247, 0.25);
+      --text: #f3f6fb;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius-sm: 8px;
+      --radius: 14px;
+      --radius-lg: 20px;
+      --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
-      padding: 0 1rem;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+      background-attachment: fixed;
     }
-    .container { max-width: 1080px; margin: 0 auto; padding: 2rem 0; }
-    header { text-align: center; margin-bottom: 3rem; }
-    .badge-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 1.5rem 0; }
-    h1 { font-size: 2.4rem; font-weight: 800; margin-bottom: 0.8rem; background: linear-gradient(135deg, #fff 30%, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    p.lead { font-size: 1.2rem; color: var(--text-muted); max-width: 720px; margin: 0 auto 1.5rem; }
-    .cta-group { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin: 2rem 0; }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 0.85rem 1.8rem; border-radius: var(--radius); font-weight: 600; text-decoration: none; transition: 0.2s; font-size: 1rem; }
-    .btn-primary { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent-glow); }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(0, 188, 212, 0.5); }
-    .btn-secondary { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); }
-    .btn-secondary:hover { border-color: var(--accent); transform: translateY(-2px); }
-    .banner-wrapper { text-align: center; margin: 2rem 0; }
-    .banner-wrapper img { width: 100%; height: auto; max-width: 1000px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 3rem 0; }
-    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; backdrop-filter: blur(10px); }
-    .card h3 { font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--accent); }
-    .card p { color: var(--text-muted); font-size: 0.95rem; }
-    .card img { width: 100%; height: auto; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border); }
-    .faq { margin: 3rem 0; }
-    .faq h2 { font-size: 1.8rem; margin-bottom: 1.5rem; text-align: center; }
-    .faq-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem; padding: 1.2rem; }
-    .faq-item h3 { font-size: 1.1rem; color: #fff; margin-bottom: 0.4rem; }
-    .faq-item p { color: var(--text-muted); font-size: 0.95rem; }
-    footer { text-align: center; padding: 3rem 0; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.9rem; }
-    footer a { color: var(--accent); text-decoration: none; }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+
+    /* Top Navigation Bar */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.8rem 1.4rem;
+      background: rgba(14, 18, 27, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 3.5rem;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+    }
+    .nav-brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    .nav-link:hover {
+      color: var(--accent);
+    }
+    .nav-cta {
+      background: linear-gradient(135deg, var(--accent), #00a8ff);
+      color: #050811;
+      padding: 0.45rem 1.1rem;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.88rem;
+      text-decoration: none;
+      transition: var(--transition);
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+    .nav-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.5);
+    }
+
+    /* Hero Section */
+    header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      border-radius: 100px;
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      animation: pulse 3s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.2); }
+      50% { box-shadow: 0 0 16px 2px rgba(0, 229, 255, 0.25); }
+    }
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #ffffff 40%, var(--accent) 85%, var(--accent-purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.lead {
+      font-size: clamp(1.1rem, 2vw, 1.3rem);
+      color: var(--text-muted);
+      max-width: 740px;
+      margin: 0 auto 2rem;
+      line-height: 1.65;
+    }
+
+    /* Action Buttons */
+    .cta-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0.95rem 1.85rem;
+      border-radius: var(--radius);
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 1rem;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #00e5ff 0%, #0099ff 100%);
+      color: #030712;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(0, 229, 255, 0.6);
+    }
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(10px);
+    }
+    .btn-secondary:hover {
+      border-color: var(--card-hover-border);
+      transform: translateY(-2px);
+      background: rgba(25, 34, 52, 0.8);
+    }
+
+    /* CLI Quick-Copy Box */
+    .cli-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(10, 14, 22, 0.85);
+      border: 1px solid var(--card-border);
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88rem;
+      color: var(--accent);
+      margin: 0.5rem auto 2.5rem;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .cli-code {
+      color: #e2e8f0;
+      user-select: all;
+    }
+    .cli-copy-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .cli-copy-btn:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
+    /* Badges Bar */
+    .badge-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 2.5rem;
+    }
+
+    /* Interactive IDE Simulator */
+    .simulator-container {
+      margin: 2rem auto 4rem;
+      max-width: 1020px;
+      background: #111520;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 229, 255, 0.1);
+      overflow: hidden;
+      text-align: left;
+    }
+    .simulator-header {
+      background: #090c14;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .window-dots {
+      display: flex;
+      gap: 7px;
+    }
+    .window-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+    
+    .simulator-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+    }
+    .sim-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition);
+    }
+    .sim-tab:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+    .sim-tab.active {
+      background: rgba(0, 229, 255, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      font-weight: 600;
+    }
+    .sim-viewport {
+      position: relative;
+      background: #000;
+      min-height: 480px;
+    }
+    .sim-screen {
+      display: none;
+      width: 100%;
+      height: auto;
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+    .sim-screen.active {
+      display: block;
+    }
+    .sim-screen img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.99); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Section Headers */
+    .section-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .section-tag {
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    /* Core Features Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.75rem;
+      margin: 3.5rem 0 5rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+    }
+    .card:hover {
+      border-color: var(--card-hover-border);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px -10px rgba(0, 229, 255, 0.15);
+    }
+    .card-icon {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      display: inline-block;
+    }
+    .card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.6rem;
+      color: #fff;
+    }
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+      flex-grow: 1;
+    }
+    .card-media {
+      margin-top: auto;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .card-media img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+    .card:hover .card-media img {
+      transform: scale(1.02);
+    }
+
+    /* Comparison Matrix */
+    .matrix-section {
+      margin: 5rem 0;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem 2rem;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .table-wrapper {
+      overflow-x: auto;
+      margin-top: 1.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+    th, td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    th.highlight, td.highlight {
+      background: rgba(0, 229, 255, 0.05);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    td.feature-name {
+      color: #fff;
+      font-weight: 500;
+    }
+    .check-yes {
+      color: #10b981;
+      font-weight: 700;
+    }
+    .check-no {
+      color: #ef4444;
+      font-weight: 700;
+    }
+
+    /* Keyboard Shortcuts Cheat Sheet */
+    .shortcuts-section {
+      margin: 5rem 0;
+    }
+    .shortcuts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-top: 2rem;
+    }
+    .shortcut-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: var(--transition);
+    }
+    .shortcut-card:hover {
+      border-color: rgba(168, 85, 247, 0.4);
+      transform: translateY(-2px);
+    }
+    .shortcut-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    kbd {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: var(--accent);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    /* FAQ Accordion */
+    .faq {
+      margin: 5rem 0;
+    }
+    .faq-list {
+      max-width: 820px;
+      margin: 2rem auto 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .faq-item {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+    .faq-item:hover {
+      border-color: var(--card-hover-border);
+    }
+    .faq-question {
+      width: 100%;
+      background: transparent;
+      border: none;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-align: left;
+      font-size: 1.08rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .faq-icon {
+      font-size: 1.2rem;
+      color: var(--accent);
+      transition: transform 0.25s ease;
+    }
+    .faq-item.open .faq-icon {
+      transform: rotate(45deg);
+    }
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.65;
+      padding: 0 1.5rem;
+    }
+    .faq-item.open .faq-answer {
+      max-height: 250px;
+      padding-bottom: 1.25rem;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 3.5rem 0 1.5rem;
+      border-top: 1px solid var(--card-border);
+      color: var(--text-dim);
+      font-size: 0.92rem;
+    }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+    }
+
+    /* Responsive Queries */
+    @media (max-width: 768px) {
+      .container { padding: 1.5rem 1rem 3rem; }
+      .nav { flex-direction: column; gap: 1rem; padding: 1rem; }
+      .cta-group { flex-direction: column; width: 100%; }
+      .btn { width: 100%; justify-content: center; }
+      .cli-bar { width: 100%; justify-content: space-between; }
+      .simulator-container { border-radius: var(--radius); }
+      .matrix-section { padding: 1.5rem 1rem; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    
+    <!-- Navigation -->
+    <nav class="nav">
+      <a href="https://j-a-y-e-s-h.github.io/mangabar/" class="nav-brand">
+        <img src="./media/icon.png" alt="MangaBar Icon" width="32" height="32">
+        <span>MangaBar</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#comparison" class="nav-link">Comparison</a>
+        <a href="#shortcuts" class="nav-link">Shortcuts</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+        <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar" class="nav-cta">Install Free</a>
+      </div>
+    </nav>
+
+    <!-- Hero Header -->
     <header>
+      <div class="pill-badge">
+        <span>⚡</span> Official Release v0.2.0 • 100% Free & Open Source
+      </div>
+
       <h1>MangaBar (Manga Bar)</h1>
-      <p class="lead">The #1 high-performance Manga Reader & Comic extension built natively for VS Code, Cursor, Windsurf & any modern IDE. Read manga, manhwa & webtoons online or offline with 350+ sources.</p>
-      
+      <p class="lead">The #1 high-performance Manga Reader & Comic Extension built natively for VS Code, Cursor, Windsurf & modern IDEs. Read manga, manhwa & webtoons online or offline with 350+ sources.</p>
+
       <div class="badge-bar">
         <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/visual-studio-marketplace/v/j-a-y-e-s-h.mangabar?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=Marketplace" alt="VS Code Marketplace"></a>
         <a href="https://github.com/j-a-y-e-s-h/mangabar/stargazers"><img src="https://img.shields.io/github/stars/j-a-y-e-s-h/mangabar?style=for-the-badge&color=f1c40f&logo=github" alt="GitHub Stars"></a>
@@ -181,81 +741,337 @@
       </div>
 
       <div class="cta-group">
-        <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar" class="btn btn-primary">⚡ Install from Marketplace</a>
+        <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar" class="btn btn-primary">⚡ Install from VS Code Marketplace</a>
         <a href="https://github.com/j-a-y-e-s-h/mangabar/releases/latest" class="btn btn-secondary">⬇️ Download .vsix</a>
         <a href="https://github.com/j-a-y-e-s-h/mangabar" class="btn btn-secondary">⭐ Star on GitHub</a>
       </div>
 
-      <div class="banner-wrapper">
-        <picture>
-          <source srcset="./media/hero-banner.webp" type="image/webp">
-          <img src="./media/hero-banner.jpg" alt="MangaBar Hero Banner" width="1376" height="768" decoding="async">
-        </picture>
+      <!-- Quick Copy CLI Command -->
+      <div class="cli-bar">
+        <span>$</span>
+        <span class="cli-code" id="cliCommand">code --install-extension j-a-y-e-s-h.mangabar</span>
+        <button class="cli-copy-btn" id="copyBtn" onclick="copyCli()">Copy</button>
+      </div>
+
+      <!-- Interactive IDE Simulator -->
+      <div class="simulator-container">
+        <div class="simulator-header">
+          <div class="window-dots">
+            <span class="window-dot dot-red"></span>
+            <span class="window-dot dot-yellow"></span>
+            <span class="window-dot dot-green"></span>
+          </div>
+          <div class="simulator-tabs">
+            <button class="sim-tab active" onclick="switchSimTab(0, this)">
+              <span>📄</span> Split Coding View
+            </button>
+            <button class="sim-tab" onclick="switchSimTab(1, this)">
+              <span>📖</span> Full-Tab Reader
+            </button>
+            <button class="sim-tab" onclick="switchSimTab(2, this)">
+              <span>🧩</span> 350+ Sources
+            </button>
+            <button class="sim-tab" onclick="switchSimTab(3, this)">
+              <span>📚</span> Offline Library
+            </button>
+          </div>
+        </div>
+        <div class="sim-viewport">
+          <div class="sim-screen active" id="simScreen0">
+            <picture>
+              <source srcset="./media/feature-reader.webp" type="image/webp">
+              <img src="./media/feature-reader.jpg" alt="MangaBar Split Screen in IDE" width="1376" height="768" decoding="async">
+            </picture>
+          </div>
+          <div class="sim-screen" id="simScreen1">
+            <picture>
+              <source srcset="./media/hero-banner.webp" type="image/webp">
+              <img src="./media/hero-banner.jpg" alt="MangaBar Full Reader View" width="1376" height="768" loading="lazy" decoding="async">
+            </picture>
+          </div>
+          <div class="sim-screen" id="simScreen2">
+            <picture>
+              <source srcset="./media/feature-extensions.webp" type="image/webp">
+              <img src="./media/feature-extensions.jpg" alt="MangaBar 350+ Extension Sources" width="1376" height="768" loading="lazy" decoding="async">
+            </picture>
+          </div>
+          <div class="sim-screen" id="simScreen3">
+            <picture>
+              <source srcset="./media/feature-library.webp" type="image/webp">
+              <img src="./media/feature-library.jpg" alt="MangaBar Offline Library Shelf" width="1376" height="768" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
       </div>
     </header>
 
-    <section class="grid">
-      <div class="card">
-        <h3>⚡ Dual-Docking & Split Screen</h3>
-        <p>Keep your code files on the left and read manga on the right sidebar—or expand to a full distraction-free editor tab with Ctrl+Alt+M.</p>
-        <picture>
-          <source srcset="./media/feature-reader.webp" type="image/webp">
-          <img src="./media/feature-reader.jpg" alt="Split screen coding and reading" width="1376" height="768" loading="lazy" decoding="async">
-        </picture>
+    <!-- Core Features Grid -->
+    <section id="features">
+      <div class="section-header">
+        <span class="section-tag">High-Performance Craft</span>
+        <h2 class="section-title">Built Specially for Developers</h2>
+        <p class="section-desc">Zero context switching. Read your favorite manga, manhwa, and comics right beside your codebase.</p>
       </div>
-      <div class="card">
-        <h3>🚀 350+ Source Extensions</h3>
-        <p>Instant access to community catalogs via Keiyoushi: MangaDex, ComicK, MangaKakalot, Asura Scans, Flame Comics and international sources.</p>
-        <picture>
-          <source srcset="./media/feature-extensions.webp" type="image/webp">
-          <img src="./media/feature-extensions.jpg" alt="Extension catalog" width="1376" height="768" loading="lazy" decoding="async">
-        </picture>
-      </div>
-      <div class="card">
-        <h3>💾 Offline Downloads & Library</h3>
-        <p>Download full chapters for flights and commutes. Save reading status, track history, and customize storage in ~/.mangabar.</p>
-        <picture>
-          <source srcset="./media/feature-library.webp" type="image/webp">
-          <img src="./media/feature-library.jpg" alt="Personal library" width="1376" height="768" loading="lazy" decoding="async">
-        </picture>
+
+      <div class="grid">
+        <article class="card">
+          <span class="card-icon">⚡</span>
+          <h3>Dual-Docking & Split View</h3>
+          <p>Keep your code files on the left and read manga on the right sidebar—or expand to a full distraction-free editor tab with <kbd>Ctrl+Alt+M</kbd>.</p>
+          <div class="card-media">
+            <picture>
+              <source srcset="./media/feature-reader.webp" type="image/webp">
+              <img src="./media/feature-reader.jpg" alt="Split screen coding and reading" width="1376" height="768" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </article>
+
+        <article class="card">
+          <span class="card-icon">🚀</span>
+          <h3>350+ Community Extensions</h3>
+          <p>Instant access to community catalogs via Keiyoushi: MangaDex, ComicK, MangaKakalot, Asura Scans, Flame Comics and international sources.</p>
+          <div class="card-media">
+            <picture>
+              <source srcset="./media/feature-extensions.webp" type="image/webp">
+              <img src="./media/feature-extensions.jpg" alt="350+ Extension catalog" width="1376" height="768" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </article>
+
+        <article class="card">
+          <span class="card-icon">💾</span>
+          <h3>Offline Downloads & Library</h3>
+          <p>Download full chapters for flights and commutes. Save reading status, track history, and customize storage in <code>~/.mangabar</code>.</p>
+          <div class="card-media">
+            <picture>
+              <source srcset="./media/feature-library.webp" type="image/webp">
+              <img src="./media/feature-library.jpg" alt="Personal offline manga library" width="1376" height="768" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </article>
       </div>
     </section>
 
-    <section class="faq">
-      <h2>Frequently Asked Questions</h2>
-      <div class="faq-item">
-        <h3>What is MangaBar (Manga Bar)?</h3>
-        <p>MangaBar (also searched as Manga Bar) is an open-source, offline-first manga, manhwa, and comic reader extension designed specifically for code editors such as VS Code, Cursor, Windsurf, and VSCodium. Read without context switching or breaking your development flow.</p>
+    <!-- Comparison Matrix -->
+    <section id="comparison" class="matrix-section">
+      <div class="section-header">
+        <span class="section-tag">Why MangaBar?</span>
+        <h2 class="section-title">The Best Way to Read Manga</h2>
+        <p class="section-desc">See how MangaBar compares against browser reading and standard webview extensions.</p>
       </div>
-      <div class="faq-item">
-        <h3>How do I read manga in VS Code or Cursor?</h3>
-        <p>Install MangaBar directly from the VS Code Marketplace or load the .vsix in Cursor. Press Ctrl+Alt+M (Cmd+Alt+M on macOS) to open the reader sidebar, browse 350+ sources like MangaDex, and read directly inside your IDE.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Can I read manga offline with MangaBar?</h3>
-        <p>Yes. MangaBar fully supports offline chapter downloads. Downloaded chapters are saved locally so you can read anytime without internet connectivity.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Is Manga Bar free and safe to use?</h3>
-        <p>Yes! MangaBar is 100% free and open-source under the MIT license with zero telemetry, no tracking, and no ads. All your reading history and downloads remain completely private on your local disk.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Does zooming manga affect my editor text zoom?</h3>
-        <p>No. MangaBar implements clamped zoom event isolation (0.5x to 4.0x) so zooming pages never zooms your code font or IDE window.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Does MangaBar work in Cursor, Windsurf, or VSCodium?</h3>
-        <p>Yes. MangaBar is fully compatible with any modern editor built on the VS Code engine (v1.85.0+).</p>
-      </div>
-      <div class="faq-item">
-        <h3>Where are my downloads stored?</h3>
-        <p>All data is stored locally in your profile at ~/.mangabar. You can also customize the directory anytime via VS Code settings.</p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th class="highlight">MangaBar (IDE)</th>
+              <th>Browser Reading</th>
+              <th>Basic Webviews</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="feature-name">Zero Context Switching</td>
+              <td class="highlight"><span class="check-yes">✓ Native Sidebar</span></td>
+              <td><span class="check-no">✗ Separate Window</span></td>
+              <td><span class="check-yes">✓ Yes</span></td>
+            </tr>
+            <tr>
+              <td class="feature-name">350+ Keiyoushi Sources</td>
+              <td class="highlight"><span class="check-yes">✓ One-Click Install</span></td>
+              <td><span class="check-no">✗ Manual Bookmarks</span></td>
+              <td><span class="check-no">✗ Single Source</span></td>
+            </tr>
+            <tr>
+              <td class="feature-name">Full Chapter Downloads</td>
+              <td class="highlight"><span class="check-yes">✓ Local Offline</span></td>
+              <td><span class="check-no">✗ Online Only</span></td>
+              <td><span class="check-no">✗ Stream Only</span></td>
+            </tr>
+            <tr>
+              <td class="feature-name">Isolated Clamped Zoom</td>
+              <td class="highlight"><span class="check-yes">✓ Editor Safe</span></td>
+              <td><span class="check-no">✗ Changes Browser Zoom</span></td>
+              <td><span class="check-no">✗ Zooms Editor UI</span></td>
+            </tr>
+            <tr>
+              <td class="feature-name">Distraction-Free / Ad-Free</td>
+              <td class="highlight"><span class="check-yes">✓ 100% Clean</span></td>
+              <td><span class="check-no">✗ Popups & Redirects</span></td>
+              <td><span class="check-yes">✓ Mostly Clean</span></td>
+            </tr>
+            <tr>
+              <td class="feature-name">Privacy & Zero Telemetry</td>
+              <td class="highlight"><span class="check-yes">✓ 100% Local</span></td>
+              <td><span class="check-no">✗ Ad Trackers & Cookies</span></td>
+              <td><span class="check-no">✗ Analytics Tracked</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
+    <!-- Shortcuts Reference -->
+    <section id="shortcuts" class="shortcuts-section">
+      <div class="section-header">
+        <span class="section-tag">Efficiency First</span>
+        <h2 class="section-title">Built-In Keyboard Shortcuts</h2>
+        <p class="section-desc">Never leave your keyboard while coding or reading.</p>
+      </div>
+
+      <div class="shortcuts-grid">
+        <div class="shortcut-card">
+          <span class="shortcut-desc">Toggle Reader Panel</span>
+          <span><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>M</kbd></span>
+        </div>
+        <div class="shortcut-card">
+          <span class="shortcut-desc">Next Page / Scroll</span>
+          <span><kbd>Space</kbd> / <kbd>↓</kbd></span>
+        </div>
+        <div class="shortcut-card">
+          <span class="shortcut-desc">Previous Page</span>
+          <span><kbd>Shift</kbd> + <kbd>Space</kbd> / <kbd>↑</kbd></span>
+        </div>
+        <div class="shortcut-card">
+          <span class="shortcut-desc">Clamped Zoom (50% - 400%)</span>
+          <span><kbd>Ctrl</kbd> + <kbd>Wheel</kbd></span>
+        </div>
+        <div class="shortcut-card">
+          <span class="shortcut-desc">Reset Zoom (100%)</span>
+          <span><kbd>Ctrl</kbd> + <kbd>0</kbd></span>
+        </div>
+        <div class="shortcut-card">
+          <span class="shortcut-desc">Fit Width / Fit Height</span>
+          <span><kbd>F</kbd></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq">
+      <div class="section-header">
+        <span class="section-tag">Answers & Help</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-desc">Everything you need to know about MangaBar (Manga Bar) for VS Code & Cursor.</p>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item open">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>What is MangaBar (Manga Bar)?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            MangaBar (also searched as Manga Bar) is an open-source, offline-first manga, manhwa, and comic reader extension designed specifically for code editors such as VS Code, Cursor, Windsurf, and VSCodium. Read without context switching or breaking your development flow.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>How do I read manga in VS Code or Cursor?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Install MangaBar directly from the VS Code Marketplace or load the .vsix in Cursor. Press <kbd>Ctrl+Alt+M</kbd> (<kbd>Cmd+Alt+M</kbd> on macOS) to open the reader sidebar, browse 350+ sources like MangaDex, and read directly inside your IDE.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>Can I read manga offline with MangaBar?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Yes. MangaBar fully supports offline chapter downloads. Downloaded chapters are saved locally on disk in <code>~/.mangabar</code> so you can read anytime without internet connectivity.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>What manga sources does MangaBar support?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            MangaBar supports over 350+ community extension sources via Keiyoushi, including MangaDex, ComicK, MangaKakalot, Asura Scans, Flame Comics, and dozens of localized language catalogs.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>Is Manga Bar free and safe to use?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Yes! MangaBar is 100% free and open-source under the MIT license with zero telemetry, no tracking, and no ads. All your reading history and downloads remain completely private on your local disk.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>Does zooming manga affect my editor text zoom?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            No. MangaBar implements clamped zoom event isolation (0.5x to 4.0x) so zooming pages never zooms your code font or IDE window.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="toggleFaq(this)">
+            <span>Does MangaBar work in Cursor, Windsurf, or VSCodium?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            Yes. MangaBar is 100% compatible with any editor built on the modern VS Code core (v1.85.0+), including Cursor, Windsurf, VSCodium, and Positron.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
     <footer>
+      <div class="footer-links">
+        <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar">VS Code Marketplace</a>
+        <a href="https://github.com/j-a-y-e-s-h/mangabar">GitHub Repository</a>
+        <a href="https://github.com/j-a-y-e-s-h/mangabar/releases/latest">Download .VSIX</a>
+        <a href="https://j-a-y-e-s-h.github.io/mangabar/llms.txt">llms.txt (AI Crawlers)</a>
+        <a href="https://j-a-y-e-s-h.github.io/mangabar/sitemap.xml">Sitemap</a>
+      </div>
       <p>MangaBar is open-source under the <a href="https://github.com/j-a-y-e-s-h/mangabar/blob/main/LICENSE">MIT License</a>. Created with ❤️ by <a href="https://github.com/j-a-y-e-s-h">Jayesh</a>.</p>
     </footer>
+
   </div>
+
+  <!-- Interactive Simulator & Utility Scripts -->
+  <script>
+    function switchSimTab(index, btn) {
+      document.querySelectorAll('.sim-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.sim-screen').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      const targetScreen = document.getElementById('simScreen' + index);
+      if (targetScreen) targetScreen.classList.add('active');
+    }
+
+    function toggleFaq(btn) {
+      const item = btn.parentElement;
+      item.classList.toggle('open');
+    }
+
+    function copyCli() {
+      const code = document.getElementById('cliCommand').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.innerText = '✓ Copied!';
+        btn.style.background = '#10b981';
+        btn.style.color = '#fff';
+        setTimeout(() => {
+          btn.innerText = 'Copy';
+          btn.style.background = '';
+          btn.style.color = '';
+        }, 2000);
+      });
+    }
+  </script>
 </body>
 </html>
