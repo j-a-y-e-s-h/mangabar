@@ -1,8 +1,8 @@
-# MangaBar - Manga & Comic Reader for VS Code & Modern IDEs
+# MangaBar — Manga, Manhwa & Comic Reader for VS Code & Cursor
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" alt="MangaBar - Manga & Comic Reader for VS Code" width="100%">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" alt="MangaBar — Manga, Manhwa & Comic Reader for VS Code and Cursor IDE" width="100%">
   </a>
 </p>
 
@@ -15,6 +15,20 @@
 </p>
 
 > 🌟 **Enjoying MangaBar?** Please consider giving us a **[Star on GitHub](https://github.com/j-a-y-e-s-h/mangabar)** to support development and help more developers discover it!
+
+---
+
+## 📑 Table of Contents
+- [Why MangaBar?](#-why-mangabar)
+- [Visual Showcase](#-visual-showcase)
+- [Quick Start in 60 Seconds](#-quick-start-in-60-seconds)
+- [Keyboard Shortcuts & Controls](#️-keyboard-shortcuts--controls)
+- [Commands Reference](#️-commands-reference)
+- [Extension Settings](#️-extension-settings)
+- [Frequently Asked Questions (FAQ)](#-frequently-asked-questions-faq)
+- [Contributing & Community](#-contributing--community)
+- [Compatibility](#-compatibility)
+- [License & Attribution](#-license--attribution)
 
 ---
 
@@ -139,6 +153,37 @@ Customize MangaBar behavior in Settings (`Ctrl+,` or `Cmd+,` > search for `Manga
 | `mangabar.autoStartServer` | `false` | Automatically boot the local engine when opening MangaBar (disabled by default for smooth IDE startup). |
 | `mangabar.extensionRepo` | *Keiyoushi URL* | Extension repository URL for community manga sources. |
 | `mangabar.serverDownloadUrl` | `""` | Custom URL or mirror to download the engine binary. |
+
+---
+
+## ❓ Frequently Asked Questions (FAQ)
+
+### 1. Can I read manga offline with MangaBar?
+**Yes.** MangaBar fully supports offline chapter downloads. Open any title from your favorite source, choose the chapters you want to download, and save them directly to your local drive. Chapters are stored locally in `~/.mangabar/data/downloads` so you can read anytime without internet access.
+
+### 2. Which manga, manhwa & comic sources are supported?
+MangaBar comes pre-configured with the official **Keiyoushi Extension Repository**, giving you one-click access to over **350+ community-maintained sources**. Popular supported sources include **MangaDex**, **ComicK**, **MangaKakalot**, **Asura Scans**, **Flame Comics**, and numerous language-specific catalogs in English, Spanish, French, Portuguese, Indonesian, and more.
+
+### 3. Does zooming manga affect my VS Code editor zoom?
+**No.** MangaBar implements clamped zoom event isolation (`0.5x` to `4.0x`). Zooming in and out using `Ctrl + Mouse Wheel` or `Ctrl +/-` strictly modifies the manga page canvas without zooming your IDE workspace or editor text font.
+
+### 4. Why is autoStartServer disabled by default?
+To keep your IDE launch blazing fast and conserve system CPU and RAM during heavy coding sessions, MangaBar only starts when you actively trigger it (e.g. clicking **MangaBar: Start Server** or opening the reader). If you prefer background engine auto-boot, simply set `"mangabar.autoStartServer": true` in VS Code Settings.
+
+### 5. Does MangaBar work in Cursor, Windsurf, and VSCodium?
+**Yes.** MangaBar is built on standard VS Code Extension APIs (compatible with VS Code `1.85.0+`) and works seamlessly in **Cursor**, **Windsurf**, and **VSCodium**. Download the latest `.vsix` from [GitHub Releases](https://github.com/j-a-y-e-s-h/mangabar/releases/latest) and install via CLI or editor UI.
+
+### 6. Where is my personal data and reading history stored?
+All manga library records, reading status, settings, and downloaded chapters are stored entirely locally on your computer at `~/.mangabar`. No account creation, telemetry, or external cloud syncing is required.
+
+---
+
+## 🤝 Contributing & Community
+
+We welcome contributions, issues, and feature suggestions from the community!
+- 🐛 **Report a Bug**: Open a ticket on our [GitHub Issue Tracker](https://github.com/j-a-y-e-s-h/mangabar/issues).
+- 💡 **Request a Feature or Source**: Join our [GitHub Discussions](https://github.com/j-a-y-e-s-h/mangabar/discussions).
+- ⭐ **Support the Project**: Give us a star on [GitHub](https://github.com/j-a-y-e-s-h/mangabar)—it helps more developers find MangaBar!
 
 ---
 

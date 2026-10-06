@@ -1,7 +1,7 @@
 {
   "name": "mangabar",
   "displayName": "MangaBar — Manga, Manhwa & Comic Reader for VS Code",
-  "description": "Read manga, manhwa, webtoons, and comics directly in VS Code, Cursor & modern IDEs. High-performance offline reader with 350+ sources (Keiyoushi, MangaDex), offline chapter downloads, dual-side docking, and smooth clamped zoom & pan.",
+  "description": "Read manga, manhwa, webtoons, and comics directly in VS Code & Cursor. Offline reader with 350+ sources (Keiyoushi, MangaDex), offline downloads, dual-side docking, and smooth zoom & pan.",
   "version": "0.2.0",
   "publisher": "j-a-y-e-s-h",
   "license": "MIT",
@@ -25,21 +25,22 @@
   "keywords": [
     "mangabar",
     "manga",
+    "manga-reader",
     "manhwa",
     "manhua",
     "webtoon",
     "comics",
     "comic",
     "comic-reader",
-    "manga-reader",
     "keiyoushi",
     "mangadex",
     "tachiyomi",
     "mihon",
-    "suwayomi",
     "offline-reader",
     "vscode-extension",
-    "reader"
+    "cursor",
+    "reader",
+    "developer-tools"
   ],
   "badges": [
     {
