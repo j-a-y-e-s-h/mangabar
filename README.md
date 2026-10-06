@@ -1,8 +1,8 @@
-# MangaBar — Manga, Manhwa & Comic Reader for VS Code & Cursor
+# MangaBar — Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor & More)
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" target="_blank">
-    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" alt="MangaBar — Manga, Manhwa & Comic Reader for VS Code and Cursor IDE" width="100%">
+    <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" alt="MangaBar — Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor, Windsurf & VSCodium)" width="100%">
   </a>
 </p>
 
@@ -84,8 +84,11 @@ Track your reading progress, organize titles by status (Reading, Completed, Plan
 Download the latest `.vsix` from the [GitHub Releases](https://github.com/j-a-y-e-s-h/mangabar/releases/latest) page, then install via command line or IDE UI:
 
 ```bash
-# Install via VS Code / IDE CLI
+# Install via VS Code CLI:
 code --install-extension mangabar-0.2.0.vsix
+
+# Or install via Cursor CLI:
+cursor --install-extension mangabar-0.2.0.vsix
 ```
 
 *Or inside your IDE:*
