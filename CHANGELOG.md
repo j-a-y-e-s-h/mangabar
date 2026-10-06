@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-10-03
  
 ### Added
-- **Complete MangaBar Rebranding (`antigravity-mangabar`)**:
+- **Complete MangaBar Rebranding**:
   - Full top-to-bottom rebrand to **MangaBar - Manga & Comic Reader** across all UI surfaces, command palette, activity bar, and configuration namespace.
   - Custom ASCII launch banner and real-time log stream sanitizer in the "MangaBar Server" Output Channel.
   - Transparent reverse-proxy HTML interceptor and DOM Brand Sanitizer dynamically scrubbing upstream names in the embedded WebUI.

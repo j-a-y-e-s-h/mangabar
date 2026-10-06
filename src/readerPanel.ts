@@ -15,14 +15,6 @@ export class ReaderPanel {
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;
 
-    // Ensure server is started
-    if (serverManager.getState() !== 'RUNNING') {
-      const started = await serverManager.startServer();
-      if (!started) {
-        return;
-      }
-    }
-
     if (ReaderPanel.currentPanel) {
       ReaderPanel.currentPanel.panel.reveal(column);
       ReaderPanel.currentPanel.update();
@@ -63,13 +55,25 @@ export class ReaderPanel {
     this.serverManager = serverManager;
 
     this.panel.webview.onDidReceiveMessage(
-      (message) => {
+      async (message) => {
         switch (message.command) {
           case 'close':
             this.dispose();
             break;
           case 'openExternal':
             vscode.env.openExternal(vscode.Uri.parse(this.serverManager.getServerUrl()));
+            break;
+          case 'startServer':
+            await vscode.window.withProgress(
+              {
+                location: vscode.ProgressLocation.Notification,
+                title: 'MangaBar: Starting Server...',
+                cancellable: false,
+              },
+              async () => {
+                await this.serverManager.startServer();
+              }
+            );
             break;
         }
       },
@@ -88,7 +92,8 @@ export class ReaderPanel {
 
   public update() {
     const serverUrl = this.serverManager.getServerUrl();
-    const isRunning = this.serverManager.getState() === 'RUNNING';
+    const state = this.serverManager.getState();
+    const isRunning = state === 'RUNNING';
     const port = this.serverManager.getPort();
 
     const isDark = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
@@ -273,6 +278,33 @@ export class ReaderPanel {
       color: var(--vscode-button-background, #007acc);
       opacity: 0.85;
     }
+    .start-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      background: var(--vscode-button-background, #007acc);
+      color: var(--vscode-button-foreground, #ffffff);
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      outline: none;
+      margin-top: 6px;
+    }
+    .start-btn:hover {
+      background: var(--vscode-button-hoverBackground, #0062a3);
+      transform: translateY(-1px);
+    }
+    .start-btn:active {
+      transform: translateY(0);
+    }
+    .start-btn svg {
+      width: 14px;
+      height: 14px;
+    }
     h2 {
       font-size: 16px;
       font-weight: 600;
@@ -281,7 +313,7 @@ export class ReaderPanel {
     p {
       font-size: 12px;
       opacity: 0.75;
-      max-width: 320px;
+      max-width: 340px;
       line-height: 1.5;
     }
   </style>
@@ -331,10 +363,32 @@ export class ReaderPanel {
       </div>
       <iframe id="readerFrame" src="${serverUrl}" allow="clipboard-read; clipboard-write; fullscreen" onload="onFrameLoaded()"></iframe>
     `
+      : state === 'STARTING'
+      ? `<div class="offline">
+          <svg class="loading-spinner" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>
+          <h2>MangaBar Server is Starting...</h2>
+          <p>Initializing local manga server on port ${port}. Please wait a moment...</p>
+        </div>`
+      : state === 'ERROR'
+      ? `<div class="offline">
+          <svg class="offline-icon" style="color: var(--vscode-errorForeground, #f48771);" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+          </svg>
+          <h2>Failed to Start Server</h2>
+          <p>Could not launch MangaBar server. Check the output channel or click below to retry.</p>
+          <button class="start-btn" onclick="startServer()">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
+            Retry Launch
+          </button>
+        </div>`
       : `<div class="offline">
           <svg class="offline-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.492-3.287.81V2.828zm7.5 9.605c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v-9.92c-.917-.318-2.107-.69-3.287-.81-1.094-.11-2.278-.037-3.213.493v9.746zM0 2.25A1.25 1.25 0 0 1 1.25 1c1.55 0 3.05.45 4.75 1.05C7.25 2.5 8 3 8 3s.75-.5 2-.95c1.7-.6 3.2-1.05 4.75-1.05A1.25 1.25 0 0 1 16 2.25v10.5A1.25 1.25 0 0 1 14.75 14c-1.4 0-2.8-.4-4.25-.9-1-.35-1.5-.6-2.5-.6s-1.5.25-2.5.6c-1.45.5-2.85.9-4.25.9A1.25 1.25 0 0 1 0 12.75V2.25z"/></svg>
           <h2>MangaBar Server is Stopped</h2>
-          <p>Please launch the MangaBar server from the Activity Bar sidebar view to view your manga library and extensions.</p>
+          <p>To keep your system running fast and smooth, the server runs only when needed. Click below to start.</p>
+          <button class="start-btn" onclick="startServer()">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2v12l10-6L4 2z"/></svg>
+            Start Server
+          </button>
         </div>`
     }
   </div>
@@ -381,6 +435,10 @@ export class ReaderPanel {
 
     function openExternal() {
       vscode.postMessage({ command: 'openExternal' });
+    }
+
+    function startServer() {
+      vscode.postMessage({ command: 'startServer' });
     }
 
     // Handle host messages (e.g. reload)

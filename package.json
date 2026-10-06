@@ -1,10 +1,15 @@
 {
   "name": "mangabar",
-  "displayName": "MangaBar - Manga & Comic Reader",
-  "description": "Read manga, manhwa, webtoons, and comics directly in your IDE sidebar or full editor tab. High-performance offline reader with Keiyoushi catalog (350+ sources), offline downloads, smooth zoom & pan, and dual-side docking.",
+  "displayName": "MangaBar — Manga, Manhwa & Comic Reader for VS Code",
+  "description": "Read manga, manhwa, webtoons, and comics directly in VS Code, Cursor & modern IDEs. High-performance offline reader with 350+ sources (Keiyoushi, MangaDex), offline chapter downloads, dual-side docking, and smooth clamped zoom & pan.",
   "version": "0.2.0",
   "publisher": "j-a-y-e-s-h",
   "license": "MIT",
+  "homepage": "https://github.com/j-a-y-e-s-h/mangabar#readme",
+  "bugs": {
+    "url": "https://github.com/j-a-y-e-s-h/mangabar/issues"
+  },
+  "qna": "https://github.com/j-a-y-e-s-h/mangabar/discussions",
   "icon": "media/icon.png",
   "galleryBanner": {
     "color": "#0d1117",
@@ -21,15 +26,20 @@
     "mangabar",
     "manga",
     "manhwa",
+    "manhua",
     "webtoon",
     "comics",
+    "comic",
     "comic-reader",
     "manga-reader",
     "keiyoushi",
     "mangadex",
+    "tachiyomi",
+    "mihon",
+    "suwayomi",
     "offline-reader",
-    "ide-reader",
-    "developer-productivity"
+    "vscode-extension",
+    "reader"
   ],
   "badges": [
     {
@@ -212,8 +222,8 @@
         },
         "mangabar.autoStartServer": {
           "type": "boolean",
-          "default": true,
-          "description": "Automatically start the server when opening the MangaBar view"
+          "default": false,
+          "description": "Automatically start the server when opening the MangaBar view (disabled by default for smooth IDE startup)"
         },
         "mangabar.extensionRepo": {
           "type": "string",

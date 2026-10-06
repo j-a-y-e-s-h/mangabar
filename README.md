@@ -8,10 +8,13 @@
 
 <p align="center">
   <a href="https://github.com/j-a-y-e-s-h/mangabar/releases/latest"><img src="https://img.shields.io/badge/MangaBar-v0.2.0-00bcd4?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="MangaBar Version"></a>
+  <a href="https://github.com/j-a-y-e-s-h/mangabar/stargazers"><img src="https://img.shields.io/github/stars/j-a-y-e-s-h/mangabar?style=for-the-badge&color=f1c40f&logo=github" alt="GitHub Stars"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-4caf50?style=for-the-badge" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-6c5ce7?style=for-the-badge" alt="Cross Platform">
   <img src="https://img.shields.io/badge/Sources-350%2B%20Extensions-ff7675?style=for-the-badge" alt="350+ Sources">
 </p>
+
+> 🌟 **Enjoying MangaBar?** Please consider giving us a **[Star on GitHub](https://github.com/j-a-y-e-s-h/mangabar)** to support development and help more developers discover it!
 
 ---
 
@@ -133,7 +136,7 @@ Customize MangaBar behavior in Settings (`Ctrl+,` or `Cmd+,` > search for `Manga
 | `mangabar.serverPort` | `4567` | Default HTTP port for the engine (auto-selects next available port if busy). |
 | `mangabar.dataDirectory` | `./data` | Directory where MangaBar stores your library, database, and settings (`~/.mangabar`). |
 | `mangabar.downloadDirectory` | `./data/downloads` | Storage path for downloaded offline manga chapters. |
-| `mangabar.autoStartServer` | `true` | Automatically boot the local engine when opening MangaBar. |
+| `mangabar.autoStartServer` | `false` | Automatically boot the local engine when opening MangaBar (disabled by default for smooth IDE startup). |
 | `mangabar.extensionRepo` | *Keiyoushi URL* | Extension repository URL for community manga sources. |
 | `mangabar.serverDownloadUrl` | `""` | Custom URL or mirror to download the engine binary. |
 
@@ -142,7 +145,7 @@ Customize MangaBar behavior in Settings (`Ctrl+,` or `Cmd+,` > search for `Manga
 ## 💻 Compatibility
 
 MangaBar runs natively across all major desktop operating systems and modern code editors:
-- **IDEs**: VS Code (`1.85.0+`), Cursor, Windsurf, VSCodium, and Antigravity IDE.
+- **IDEs**: VS Code (`1.85.0+`), Cursor, Windsurf, VSCodium.
 - **Operating Systems**: Windows 10/11 (x64, arm64), macOS (Intel & Apple Silicon), Linux (Ubuntu, Debian, Fedora, Arch).
 - **Architecture**: Zero cloud dependency; 100% self-hosted and private.
 

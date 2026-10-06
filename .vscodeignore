@@ -13,3 +13,4 @@ package-lock.json
 *.vsix
 .gitignore
 scratch/**
+.playwright-mcp/**

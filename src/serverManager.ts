@@ -230,26 +230,28 @@ export class ServerManager {
               upstreamRes.on('data', (chunk) => (body += chunk));
               upstreamRes.on('end', () => {
                 if (isReaderJs) {
-                  // 1. Rewrite title from "Exit reader" to "Back to Manga"
-                  body = body.replace(/title:\s*\w+\._\(\{\s*id:\s*[`'"]2mxCGH[`'"]\s*\}\)/g, 'title:"Back to Manga"');
+                  // 1. Top-left button: change to 'Close Menu' with 'X' SVG icon
+                  const wrRegex = /title:\s*[a-zA-Z0-9_$]+\._\(\{\s*id:\s*[`'"]2mxCGH[`'"]\s*\}\),\s*children:\s*\(0,\s*([a-zA-Z0-9_$.]+)\)\(([a-zA-Z0-9_$]+),\{sx:\{marginRight:2\},onClick:[a-zA-Z0-9_$]+,color:[`'"]inherit[`'"],children:[a-zA-Z0-9_$]+\(\(0,\s*\1\)\([a-zA-Z0-9_$]+,\{\}\),\s*\(0,\s*\1\)\([a-zA-Z0-9_$]+,\{\}\)\)\}\)\}\)/;
+                  const wrReplacement = 'title:"Close Menu",children:(0,$1)($2,{sx:{marginRight:2},onClick:(evt)=>{try{evt&&evt.stopPropagation&&evt.stopPropagation();}catch(_){};try{if(window.__MANGABAR_CLOSE_MENU__)window.__MANGABAR_CLOSE_MENU__();}catch(_){};try{if(window.__MANGABAR_READER_SERVICE__)window.__MANGABAR_READER_SERVICE__.updateSetting("isStaticNav",!1);}catch(_){};try{if(window.__MANGABAR_READER_STORE__)window.__MANGABAR_READER_STORE__.getState().overlay?.setIsVisible?.(!1);}catch(_){};try{let p=document.querySelector("button[title*=\\"Static\\"],button[title*=\\"pin\\"]");if(p)p.click();}catch(_){}},color:"inherit",children:(0,$1)("svg",{viewBox:"0 0 24 24",width:24,height:24,fill:"currentColor",children:(0,$1)("path",{d:"M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"})})})})';
 
-                  // 2. Rewrite Wr exit binding in Reader-*.js so clicking the drawer back button dismisses controls instead of exiting manga
-                  body = body.replace(
-                    /\[\(\)\s*=>\s*\(\{\s*exit:\s*([a-zA-Z0-9_$]+)\.useExit\(\)\s*\}\)\]\s*,\s*\[[`'"]exit[`'"]\]/g,
-                    '[()=>({exit:()=>{try{if(window.__MANGABAR_CLOSE_MENU__)window.__MANGABAR_CLOSE_MENU__();else{if(typeof $1!=="undefined"&&$1.updateSetting)$1.updateSetting("isStaticNav",!1);document.dispatchEvent(new KeyboardEvent("keydown",{key:"m",code:"KeyM",bubbles:!0}));document.dispatchEvent(new KeyboardEvent("keyup",{key:"m",code:"KeyM",bubbles:!0}));}}catch(_){}}})],[`exit`]'
-                  );
+                  // 2. Settings drawer section: append single full-width 'Back to Manga' button below Settings
+                  const settingsRegex = /(\(0,\s*([a-zA-Z0-9_$.]+)\)\(([a-zA-Z0-9_$]+),\{onClick:\(\)=>[a-zA-Z0-9_$]+\(\),size:[`'"]large[`'"],sx:\{justifyContent:[`'"]start[`'"],textTransform:[`'"]none[`'"]\},variant:[`'"]contained[`'"],startIcon:\(0,\s*\2\)\([a-zA-Z0-9_$]+,\{\}\),children:[a-zA-Z0-9_$]+\._\(\{\s*id:\s*[`'"]Tz0i8g[`'"]\s*\}\)\}\))/;
+                  const settingsReplacement = '$1,(0,$2)($3,{onClick:()=>{try{let m=window.location.pathname.match(/\\/manga\\/([^\\/]+)/);let target=m?"/manga/"+m[1]:"/";if(window.history&&window.history.pushState){window.history.pushState(null,"",target);window.dispatchEvent(new PopStateEvent("popstate"));}else{window.location.href=target;}}catch(_){}},size:"large",sx:{justifyContent:"start",textTransform:"none",marginTop:1},variant:"outlined",color:"inherit",startIcon:(0,$2)("svg",{viewBox:"0 0 24 24",width:24,height:24,fill:"currentColor",children:(0,$2)("path",{d:"M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.65 1 5.75V21c0 .55.45 1 1 1 .1 0 .2 0 .3-.05C3.85 21.35 5.55 21 7 21c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.41.21.75-.19.75-.65V6c-.6-.45-1.55-.75-2.5-1zm-1 14c-1.05-.2-2.3-.3-3.5-.3-1.65 0-3.4.45-4.5 1.15V7.5c1.1-.7 2.85-1.15 4.5-1.15 1.2 0 2.45.1 3.5.3V19z"})}),children:"Back to Manga"})';
 
-                  // 3. Rewrite Wr button onClick directly as safeguard
-                  body = body.replace(
-                    /(title:\s*"Back to Manga"[\s\S]*?onClick:\s*)([a-zA-Z0-9_$]+)/g,
-                    '$1()=>{try{if(window.__MANGABAR_CLOSE_MENU__)window.__MANGABAR_CLOSE_MENU__();else{document.dispatchEvent(new KeyboardEvent("keydown",{key:"m",code:"KeyM",bubbles:!0}));document.dispatchEvent(new KeyboardEvent("keyup",{key:"m",code:"KeyM",bubbles:!0}));}}catch(_){}}'
-                  );
+                  body = body
+                    .replace(wrRegex, wrReplacement)
+                    .replace(settingsRegex, settingsReplacement);
                 } else if (isReaderServiceJs) {
-                  // In ReaderService-*.js: Expose window.__MANGABAR_CLOSE_MENU__ and window.__MANGABAR_READER_STORE__
-                  body = body.replace(
-                    /([a-zA-Z0-9_$]+)=\(\)=>([a-zA-Z0-9_$]+)\.getState\(\)\.overlay/g,
-                    '$1=()=>{try{if(typeof window!=="undefined"&&!window.__MANGABAR_CLOSE_MENU__){window.__MANGABAR_READER_STORE__=$2;window.__MANGABAR_CLOSE_MENU__=()=>{try{let s=$2.getState();if(s&&s.updateSetting)s.updateSetting("isStaticNav",!1);if(s&&s.overlay&&s.overlay.setIsVisible)s.overlay.setIsVisible(!1);}catch(_){try{document.dispatchEvent(new KeyboardEvent("keydown",{key:"m",code:"KeyM",bubbles:!0}));document.dispatchEvent(new KeyboardEvent("keyup",{key:"m",code:"KeyM",bubbles:!0}));}catch(__){}}};}}catch(_){};return $2.getState().overlay}'
-                  );
+                  // In ReaderService-*.js: Expose window.__MANGABAR_CLOSE_MENU__, window.__MANGABAR_READER_STORE__, and window.__MANGABAR_READER_SERVICE__
+                  body = body
+                    .replace(
+                      /Se\(\$r,`chapterUpdateQueues`,new Map\);[\s\S]*?export\{/,
+                      'Se($r,`chapterUpdateQueues`,new Map);try{window.__MANGABAR_READER_STORE__=H;window.__MANGABAR_READER_SERVICE__=$r;window.__MANGABAR_CLOSE_MENU__=()=>{try{$r.updateSetting("isStaticNav",!1);}catch(_){};try{H.getState().overlay.setIsVisible(!1);}catch(_){};};}catch(_){};export{'
+                    )
+                    .replace(
+                      /ie\(Pr,"chapterUpdateQueues",new Map\)[\s\S]*?\}\}\}\);/,
+                      'ie(Pr,"chapterUpdateQueues",new Map);try{window.__MANGABAR_READER_STORE__=at;window.__MANGABAR_READER_SERVICE__=Pr;window.__MANGABAR_CLOSE_MENU__=()=>{try{Pr.updateSetting("isStaticNav",!1);}catch(_){};try{at.getState().overlay.setIsVisible(!1);}catch(_){};};}catch(_){}}}});'
+                    );
                 } else if (isIndexJs) {
                   // In index-*.js: Rewrite Suwayomi katakana circle logo in splash/loading screen with MangaBar brand badge
                   body = body.replace(

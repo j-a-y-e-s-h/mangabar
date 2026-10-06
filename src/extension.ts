@@ -67,6 +67,18 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('mangabar.toggleReader', async () => {
       if (!serverManager) return;
+      if (serverManager.getState() === 'STOPPED') {
+        vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'MangaBar: Starting Server...',
+            cancellable: false,
+          },
+          async () => {
+            await serverManager.startServer();
+          }
+        );
+      }
       await ReaderPanel.toggle(context.extensionUri, serverManager);
     }),
 

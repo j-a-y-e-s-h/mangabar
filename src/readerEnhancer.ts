@@ -2,7 +2,7 @@
  * MangaBar Client-Side Reader Enhancer Script.
  * Injected into the MangaBar WebUI context via local reverse-proxy.
  * Provides:
- * 1. Two-tier reader navigation flow (menu back arrow dismisses menu; canvas floating button exits).
+ * 1. Deep brand scrubbing and clean navigation back to Manga details.
  * 2. Safe clamped Ctrl-zoom (0.5x - 4.0x) with drag-to-pan, auto-reset, and zero IDE zoom leakage.
  */
 
@@ -163,229 +163,89 @@ export function getReaderEnhancerScript(): string {
   }
 
   /* ──────────────────────────────────────────────────────────
-   * 1. FLOATING EXIT BUTTON (Canvas -> Manga Details)
+   * 1. READER MENU CLOSE & CLEANUP
+   * Ensure any lingering floating exit button is removed.
+   * Provide closeReaderMenu() so clicking the 'X' button or hotkey
+   * closes the menu drawer and returns to reading the current chapter.
    * ────────────────────────────────────────────────────────── */
-  let floatingExitBtn = null;
-
-  function areReaderControlsOpen() {
-    // Check for visible drawer paper, topBar, or appBar
-    const drawer = document.querySelector(
-      '[class*="MuiDrawer-root"]:not([style*="visibility: hidden"]):not([style*="display: none"]), [class*="MuiDrawer-paper"]:not([style*="visibility: hidden"]):not([style*="display: none"]), [class*="drawer"]:not([style*="display: none"]), [class*="Drawer"]:not([style*="display: none"]), [role="presentation"] > [class*="MuiPaper-root"]'
-    );
-    if (drawer && drawer.offsetParent !== null && drawer.getBoundingClientRect().width > 0) {
-      return true;
-    }
-    const topBar = document.querySelector('header, [class*="topBar"], [class*="appBar"], [class*="MuiAppBar-root"]');
-    if (topBar && topBar.offsetParent !== null && topBar.getBoundingClientRect().height > 0) {
-      return true;
-    }
-    const backdrop = document.querySelector('[class*="MuiBackdrop-root"]');
-    if (backdrop && backdrop.offsetParent !== null) {
-      return true;
-    }
-    return false;
-  }
-
-  function updateFloatingExitButtonVisibility() {
-    if (!floatingExitBtn) return;
-    if (!isReaderView() || areReaderControlsOpen()) {
-      floatingExitBtn.style.display = 'none';
-    } else {
-      floatingExitBtn.style.display = 'flex';
+  function cleanupLingeringFloatingButtons() {
+    const lingering = document.getElementById('mangabar-floating-exit-btn');
+    if (lingering) {
+      lingering.remove();
     }
   }
+  cleanupLingeringFloatingButtons();
 
-  function ensureFloatingExitButton() {
-    if (!isReaderView()) {
-      if (floatingExitBtn) {
-        floatingExitBtn.remove();
-        floatingExitBtn = null;
-      }
-      return;
-    }
-
-    if (document.getElementById('mangabar-floating-exit-btn')) {
-      floatingExitBtn = document.getElementById('mangabar-floating-exit-btn');
-      updateFloatingExitButtonVisibility();
-      return;
-    }
-
-    floatingExitBtn = document.createElement('button');
-    floatingExitBtn.id = 'mangabar-floating-exit-btn';
-    floatingExitBtn.setAttribute('aria-label', 'Exit Reader to Manga Details');
-    floatingExitBtn.title = 'Exit to Manga Details';
-
-    // SVG Codicon Arrow Left
-    floatingExitBtn.innerHTML = \`
-      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M7.78 12.53a.75.75 0 0 1-1.06 0L2.47 8.28a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 1.06L4.31 7.5h8.94a.75.75 0 0 1 0 1.5H4.31l3.47 3.47a.75.75 0 0 1 0 1.06z"/>
-      </svg>
-    \`;
-
-    // Modern floating styles: 35% idle opacity, rounded pill, backdrop blur
-    Object.assign(floatingExitBtn.style, {
-      position: 'fixed',
-      top: '16px',
-      left: '16px',
-      width: '36px',
-      height: '36px',
-      borderRadius: '50%',
-      backgroundColor: 'rgba(20, 20, 24, 0.72)',
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-      border: '1px solid rgba(255, 255, 255, 0.18)',
-      color: '#ffffff',
-      display: areReaderControlsOpen() ? 'none' : 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      zIndex: '99999',
-      opacity: '0.35',
-      transition: 'opacity 0.22s ease, transform 0.18s ease, background-color 0.2s ease',
-      boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
-      userSelect: 'none',
-      padding: '0',
-    });
-
-    floatingExitBtn.addEventListener('mouseenter', () => {
-      floatingExitBtn.style.opacity = '1.0';
-      floatingExitBtn.style.transform = 'scale(1.06)';
-      floatingExitBtn.style.backgroundColor = 'rgba(28, 28, 34, 0.92)';
-    });
-
-    floatingExitBtn.addEventListener('mouseleave', () => {
-      floatingExitBtn.style.opacity = '0.35';
-      floatingExitBtn.style.transform = 'scale(1.0)';
-      floatingExitBtn.style.backgroundColor = 'rgba(20, 20, 24, 0.72)';
-      resetIdleTimer();
-    });
-
-    let idleTimeout = null;
-    function resetIdleTimer() {
-      if (!floatingExitBtn || areReaderControlsOpen() || !isReaderView()) return;
-      if (!floatingExitBtn.matches(':hover')) {
-        floatingExitBtn.style.opacity = '0.35';
-      }
-      clearTimeout(idleTimeout);
-      idleTimeout = setTimeout(() => {
-        if (floatingExitBtn && !floatingExitBtn.matches(':hover') && !areReaderControlsOpen()) {
-          floatingExitBtn.style.opacity = '0.08';
-        }
-      }, 3500);
-    }
-
-    window.addEventListener('mousemove', resetIdleTimer, { passive: true });
-    window.addEventListener('touchstart', resetIdleTimer, { passive: true });
-    resetIdleTimer();
-
-    floatingExitBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const mangaId = getMangaId();
-      if (mangaId) {
-        // Navigate to Manga Details page
-        navigateTo(\`/manga/\${mangaId}\`);
-      } else {
-        navigateTo('/');
-      }
-    });
-
-    document.body.appendChild(floatingExitBtn);
-  }
-
-  function navigateTo(targetPath) {
-    // Reset zoom before leaving
-    resetZoom();
-    if (window.history && window.history.pushState) {
-      window.history.pushState(null, '', targetPath);
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    } else {
-      window.location.href = targetPath;
-    }
-  }
-
-  /* ──────────────────────────────────────────────────────────
-   * 2. TOP-LEFT MENU BACK ARROW DISMISSAL
-   * When reader controls menu is open, clicking the top-left
-   * back button dismisses controls and returns to active manga.
-   * ────────────────────────────────────────────────────────── */
-  function isReaderBackArrowButton(target) {
-    if (!isReaderView() || !target) return false;
-    const btn = target.closest('button, [role="button"], a');
-    if (!btn) return false;
-
-    // Check if it's the floating button we injected
-    if (btn.id === 'mangabar-floating-exit-btn') return false;
-
-    // Check if it's inside drawer or top bar
-    const inControls = btn.closest('[class*="drawer"], [class*="Drawer"], [class*="MuiDrawer"], header, [class*="MuiAppBar"], [class*="topBar"]');
-    if (!inControls) return false;
-
-    // Check if button text, title, or aria-label matches back/exit/close
-    const label = ((btn.getAttribute('aria-label') || '') + ' ' + (btn.getAttribute('title') || '') + ' ' + (btn.innerText || '')).toLowerCase();
-    const isBackOrExit = label.includes('back') || label.includes('exit') || label.includes('close') || label.includes('manga');
-
-    const hasBackSvg = btn.querySelector('svg path[d*="M20 11H7.83"], svg path[d*="M19 12"], svg path[d*="M12 20"], svg[data-testid="ArrowBackIcon"], svg');
-    const rect = btn.getBoundingClientRect();
-    const isTopCorner = rect.top < 150 && (rect.left < 150 || (window.innerWidth - rect.right) < 150);
-
-    return !!(isBackOrExit || (isTopCorner && hasBackSvg));
-  }
-
-  // Intercept click on reader menu back arrow
-  document.addEventListener('click', (e) => {
-    if (!isReaderView()) return;
-
-    if (isReaderBackArrowButton(e.target)) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      console.log('[MangaBar] Reader menu back arrow clicked -> Dismissing controls to manga page');
-      dismissReaderControls();
-    }
-  }, true); // Capture phase to intercept before React router
-
-  function dismissReaderControls() {
-    // 1. Call injected window.__MANGABAR_CLOSE_MENU__ if available
+  function closeReaderMenu() {
     try {
       if (typeof window.__MANGABAR_CLOSE_MENU__ === 'function') {
         window.__MANGABAR_CLOSE_MENU__();
       }
-    } catch (err) {
-      console.warn('[MangaBar] __MANGABAR_CLOSE_MENU__ error:', err);
-    }
-
-    // 2. Direct Zustand store manipulation if exposed
+    } catch (_) {}
     try {
-      if (window.__MANGABAR_READER_STORE__ && window.__MANGABAR_READER_STORE__.getState) {
+      if (window.__MANGABAR_READER_SERVICE__ && typeof window.__MANGABAR_READER_SERVICE__.updateSetting === 'function') {
+        window.__MANGABAR_READER_SERVICE__.updateSetting('isStaticNav', false);
+      }
+    } catch (_) {}
+    try {
+      if (window.__MANGABAR_READER_STORE__ && typeof window.__MANGABAR_READER_STORE__.getState === 'function') {
         const store = window.__MANGABAR_READER_STORE__.getState();
-        if (store && store.updateSetting) {
-          store.updateSetting('isStaticNav', false);
-        }
-        if (store && store.overlay && store.overlay.setIsVisible) {
+        if (store && store.overlay && typeof store.overlay.setIsVisible === 'function') {
           store.overlay.setIsVisible(false);
         }
       }
     } catch (_) {}
-
-    // 3. Dispatch native KeyM keyboard hotkey (Suwayomi built-in TOGGLE_MENU hook)
     try {
-      const keyMDown = new KeyboardEvent('keydown', { key: 'm', code: 'KeyM', bubbles: true, cancelable: true });
-      document.dispatchEvent(keyMDown);
-      const keyMUp = new KeyboardEvent('keyup', { key: 'm', code: 'KeyM', bubbles: true, cancelable: true });
-      document.dispatchEvent(keyMUp);
+      // Find the Pin / Static navigation button in the reader drawer if it's currently pinned, and click it to unpin
+      const drawer = document.querySelector('[class*="MuiDrawer-root"], [role="presentation"]');
+      if (drawer) {
+        const pinButtons = drawer.querySelectorAll('button');
+        pinButtons.forEach((btn) => {
+          const title = (btn.getAttribute('title') || btn.getAttribute('aria-label') || '').toLowerCase();
+          if (title.includes('static') || title.includes('pin') || title.includes('navigation')) {
+            const isPinned = btn.getAttribute('color') === 'primary' ||
+              btn.classList.contains('MuiIconButton-colorPrimary') ||
+              btn.querySelector('.muiltr-primary') !== null;
+            if (isPinned) {
+              btn.click();
+            }
+          }
+        });
+      }
     } catch (_) {}
-
-    // 4. Update floating exit button visibility after drawer transition
-    setTimeout(() => {
-      updateFloatingExitButtonVisibility();
-    }, 60);
-    setTimeout(() => {
-      updateFloatingExitButtonVisibility();
-    }, 250);
   }
 
+  // Intercept click on top-left 'X' / 'Close Menu' button in reader controls
+  document.addEventListener(
+    'click',
+    (e) => {
+      if (!isReaderView() || !e.target) return;
+      const btn = e.target.closest('button, [role="button"]');
+      if (!btn) return;
+
+      const hasCloseSvg = btn.querySelector('svg path[d*="M19 6.41"]');
+      const label = (
+        (btn.getAttribute('title') || '') +
+        ' ' +
+        (btn.getAttribute('aria-label') || '')
+      ).toLowerCase();
+
+      if (hasCloseSvg || label.includes('close menu')) {
+        closeReaderMenu();
+      }
+    },
+    false
+  );
+
+  // Close reader menu on Escape key
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isReaderView()) {
+      closeReaderMenu();
+    }
+  });
+
   /* ──────────────────────────────────────────────────────────
-   * 3. SAFE CLAMPED CTRL-ZOOM (50% - 400%) & PAN
+   * 2. SAFE CLAMPED CTRL-ZOOM (50% - 400%) & PAN
    * ────────────────────────────────────────────────────────── */
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 4.0;
@@ -608,8 +468,7 @@ export function getReaderEnhancerScript(): string {
       lastPathname = window.location.pathname;
       resetZoom();
     }
-    ensureFloatingExitButton();
-    updateFloatingExitButtonVisibility();
+    cleanupLingeringFloatingButtons();
   }
 
   // Hook into browser history state transitions

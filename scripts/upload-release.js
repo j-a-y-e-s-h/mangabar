@@ -117,22 +117,46 @@ async function run() {
   }
 
   const rootDir = path.resolve(__dirname, '..');
-  let vsixPath = path.join(rootDir, 'mangabar-0.2.0.vsix');
-  if (!fs.existsSync(vsixPath)) {
-    vsixPath = path.join(rootDir, 'antigravity-mangabar-0.2.0.vsix');
-  }
+  const vsixPath = path.join(rootDir, 'mangabar-0.2.0.vsix');
   const jarPath = path.join(rootDir, 'bin', 'mangabar-server.jar');
+
+  async function uploadOrReplace(filePath, contentType) {
+    if (!fs.existsSync(filePath)) return;
+    const fileName = path.basename(filePath);
+    if (release.assets && Array.isArray(release.assets)) {
+      const existing = release.assets.find((a) => a.name === fileName);
+      if (existing) {
+        console.log(`Deleting existing release asset ${fileName} (id: ${existing.id})...`);
+        try {
+          await request({
+            hostname: 'api.github.com',
+            path: `/repos/${OWNER}/${REPO}/releases/assets/${existing.id}`,
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${TOKEN}`,
+              'User-Agent': 'MangaBar-Uploader',
+              'Accept': 'application/vnd.github+json',
+            },
+          });
+          console.log(`✓ Deleted existing ${fileName}`);
+        } catch (delErr) {
+          console.warn(`Warning deleting existing asset: ${delErr.message}`);
+        }
+      }
+    }
+    await uploadAsset(release.upload_url, filePath, contentType);
+  }
 
   // Upload .vsix
   if (fs.existsSync(vsixPath)) {
     console.log('[2/3] Uploading Extension .vsix package...');
-    await uploadAsset(release.upload_url, vsixPath, 'application/octet-stream');
+    await uploadOrReplace(vsixPath, 'application/octet-stream');
   }
 
   // Upload server jar
   if (fs.existsSync(jarPath)) {
     console.log('[3/3] Uploading MangaBar Server Engine JAR...');
-    await uploadAsset(release.upload_url, jarPath, 'application/java-archive');
+    await uploadOrReplace(jarPath, 'application/java-archive');
   }
 
   console.log('\n========================================');

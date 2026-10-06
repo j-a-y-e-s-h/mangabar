@@ -80,7 +80,7 @@ export class ConfigManager {
   }
 
   public shouldAutoStart(): boolean {
-    return this.getConfig().get<boolean>('autoStartServer', true);
+    return this.getConfig().get<boolean>('autoStartServer', false);
   }
 
   public async setCustomDataDirectory(newPath: string): Promise<void> {
