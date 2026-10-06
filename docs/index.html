@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MangaBar — Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor & More)</title>
+  <meta name="description" content="Read manga, manhwa, webtoons, and comics directly in your IDE (VS Code, Cursor, Windsurf, VSCodium). High-performance offline reader with 350+ Keiyoushi sources, downloads, and dual-side docking.">
+  <meta name="keywords" content="manga, manga reader, manhwa, manhua, webtoon, comics, comic reader, vscode extension, cursor extension, keiyoushi, mangadex, offline manga, developer tools">
+  <meta name="author" content="Jayesh">
+  <link rel="canonical" href="https://j-a-y-e-s-h.github.io/mangabar/">
+
+  <!-- OpenGraph / Facebook / Discord -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://j-a-y-e-s-h.github.io/mangabar/">
+  <meta property="og:title" content="MangaBar — Manga & Comic Reader for Any IDE">
+  <meta property="og:description" content="Read manga, manhwa, webtoons, and comics seamlessly inside VS Code, Cursor & any modern IDE. Offline-first with 350+ sources.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png">
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://j-a-y-e-s-h.github.io/mangabar/">
+  <meta name="twitter:title" content="MangaBar — Manga & Comic Reader for Any IDE">
+  <meta name="twitter:description" content="Read manga, manhwa, webtoons, and comics seamlessly inside VS Code, Cursor & any modern IDE.">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png">
+
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/icon.png">
+
+  <!-- Schema.org JSON-LD for Google & LLM Crawlers -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "MangaBar",
+    "headline": "Manga, Manhwa & Comic Reader for Any IDE",
+    "operatingSystem": "Windows, macOS, Linux",
+    "applicationCategory": "DeveloperApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "High-performance manga, manhwa, webtoon and comic reader for code editors including VS Code, Cursor, Windsurf, and VSCodium. Supports 350+ Keiyoushi sources, offline downloads, and smooth pan-zoom.",
+    "softwareVersion": "0.2.0",
+    "image": "https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png",
+    "downloadUrl": "https://github.com/j-a-y-e-s-h/mangabar/releases/latest",
+    "author": {
+      "@type": "Person",
+      "name": "Jayesh",
+      "url": "https://github.com/j-a-y-e-s-h"
+    }
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Can I read manga offline in VS Code or Cursor?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. MangaBar supports full chapter downloads for offline reading. Downloaded titles are stored locally on your disk in ~/.mangabar."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What manga sources does MangaBar support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "MangaBar is integrated with the Keiyoushi extension network, providing over 350+ community-maintained sources including MangaDex, ComicK, MangaKakalot, Asura Scans, and more."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does zooming in MangaBar change my IDE font size?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. MangaBar uses isolated clamped zoom (0.5x to 4.0x) so zooming manga never affects your code editor font or IDE window zoom."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(22, 27, 34, 0.7);
+      --accent: #00bcd4;
+      --accent-glow: rgba(0, 188, 212, 0.3);
+      --text: #f0f6fc;
+      --text-muted: #8b949e;
+      --border: #30363d;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 0 1rem;
+    }
+    .container { max-width: 1080px; margin: 0 auto; padding: 2rem 0; }
+    header { text-align: center; margin-bottom: 3rem; }
+    .badge-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 1.5rem 0; }
+    h1 { font-size: 2.4rem; font-weight: 800; margin-bottom: 0.8rem; background: linear-gradient(135deg, #fff 30%, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    p.lead { font-size: 1.2rem; color: var(--text-muted); max-width: 720px; margin: 0 auto 1.5rem; }
+    .cta-group { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin: 2rem 0; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 0.85rem 1.8rem; border-radius: var(--radius); font-weight: 600; text-decoration: none; transition: 0.2s; font-size: 1rem; }
+    .btn-primary { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent-glow); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(0, 188, 212, 0.5); }
+    .btn-secondary { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .banner-wrapper { text-align: center; margin: 2rem 0; }
+    .banner-wrapper img { width: 100%; max-width: 1000px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 3rem 0; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; backdrop-filter: blur(10px); }
+    .card h3 { font-size: 1.25rem; margin-bottom: 0.5rem; color: var(--accent); }
+    .card p { color: var(--text-muted); font-size: 0.95rem; }
+    .card img { width: 100%; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border); }
+    .faq { margin: 3rem 0; }
+    .faq h2 { font-size: 1.8rem; margin-bottom: 1.5rem; text-align: center; }
+    .faq-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem; padding: 1.2rem; }
+    .faq-item h3 { font-size: 1.1rem; color: #fff; margin-bottom: 0.4rem; }
+    .faq-item p { color: var(--text-muted); font-size: 0.95rem; }
+    footer { text-align: center; padding: 3rem 0; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.9rem; }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>MangaBar</h1>
+      <p class="lead">The high-performance Manga, Manhwa, Webtoon & Comic reader built natively for VS Code, Cursor, Windsurf & any modern IDE.</p>
+      
+      <div class="badge-bar">
+        <a href="https://github.com/j-a-y-e-s-h/mangabar/releases/latest"><img src="https://img.shields.io/badge/Version-v0.2.0-00bcd4?style=for-the-badge&logo=visualstudiocode" alt="Version"></a>
+        <a href="https://github.com/j-a-y-e-s-h/mangabar/stargazers"><img src="https://img.shields.io/github/stars/j-a-y-e-s-h/mangabar?style=for-the-badge&color=f1c40f&logo=github" alt="GitHub Stars"></a>
+        <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-6c5ce7?style=for-the-badge" alt="Platforms">
+        <img src="https://img.shields.io/badge/Sources-350%2B%20Extensions-ff7675?style=for-the-badge" alt="350+ Sources">
+        <a href="https://github.com/j-a-y-e-s-h/mangabar/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-4caf50?style=for-the-badge" alt="License: MIT"></a>
+      </div>
+
+      <div class="cta-group">
+        <a href="https://github.com/j-a-y-e-s-h/mangabar/releases/latest" class="btn btn-primary">⬇️ Download Extension (.vsix)</a>
+        <a href="https://github.com/j-a-y-e-s-h/mangabar" class="btn btn-secondary">⭐ Star on GitHub</a>
+      </div>
+
+      <div class="banner-wrapper">
+        <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/hero-banner.png" alt="MangaBar Hero Banner">
+      </div>
+    </header>
+
+    <section class="grid">
+      <div class="card">
+        <h3>⚡ Dual-Docking & Split Screen</h3>
+        <p>Keep your code files on the left and read manga on the right sidebar—or expand to a full distraction-free editor tab with Ctrl+Alt+M.</p>
+        <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-reader.jpg" alt="Split screen coding and reading">
+      </div>
+      <div class="card">
+        <h3>🚀 350+ Source Extensions</h3>
+        <p>Instant access to community catalogs via Keiyoushi: MangaDex, ComicK, MangaKakalot, Asura Scans, Flame Comics and international sources.</p>
+        <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-extensions.jpg" alt="Extension catalog">
+      </div>
+      <div class="card">
+        <h3>💾 Offline Downloads & Library</h3>
+        <p>Download full chapters for flights and commutes. Save reading status, track history, and customize storage in ~/.mangabar.</p>
+        <img src="https://raw.githubusercontent.com/j-a-y-e-s-h/mangabar/main/media/feature-library.jpg" alt="Personal library">
+      </div>
+    </section>
+
+    <section class="faq">
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-item">
+        <h3>Can I read manga offline with MangaBar?</h3>
+        <p>Yes. MangaBar fully supports offline chapter downloads. Downloaded chapters are saved locally so you can read anytime without internet connectivity.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Does zooming manga affect my editor text zoom?</h3>
+        <p>No. MangaBar implements clamped zoom event isolation (0.5x to 4.0x) so zooming pages never zooms your code font or IDE window.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Does MangaBar work in Cursor, Windsurf, or VSCodium?</h3>
+        <p>Yes. MangaBar is fully compatible with any modern editor built on the VS Code engine (v1.85.0+).</p>
+      </div>
+      <div class="faq-item">
+        <h3>Where are my downloads stored?</h3>
+        <p>All data is stored locally in your profile at ~/.mangabar. You can also customize the directory anytime via VS Code settings.</p>
+      </div>
+    </section>
+
+    <footer>
+      <p>MangaBar is open-source under the <a href="https://github.com/j-a-y-e-s-h/mangabar/blob/main/LICENSE">MIT License</a>. Created with ❤️ by <a href="https://github.com/j-a-y-e-s-h">Jayesh</a>.</p>
+    </footer>
+  </div>
+</body>
+</html>

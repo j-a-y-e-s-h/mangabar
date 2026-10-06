@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://j-a-y-e-s-h.github.io/mangabar/sitemap.xml

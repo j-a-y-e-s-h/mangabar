@@ -244,7 +244,9 @@
     "watch": "node esbuild.js --watch",
     "sync-ext": "node scripts/sync-extension.js",
     "patch-webui": "node scripts/patch-webui.js",
-    "package": "npx @vscode/vsce package --no-dependencies"
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "publish:marketplace": "npx @vscode/vsce publish --no-dependencies",
+    "publish:openvsx": "npx ovsx publish mangabar-0.2.0.vsix"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
