@@ -7,7 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/j-a-y-e-s-h/mangabar/releases/latest"><img src="https://img.shields.io/badge/MangaBar-v0.2.0-00bcd4?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="MangaBar Version"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/visual-studio-marketplace/v/j-a-y-e-s-h.mangabar?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=Marketplace" alt="VS Code Marketplace"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/visual-studio-marketplace/i/j-a-y-e-s-h.mangabar?style=for-the-badge&color=00bcd4" alt="Installs"></a>
   <a href="https://github.com/j-a-y-e-s-h/mangabar/stargazers"><img src="https://img.shields.io/github/stars/j-a-y-e-s-h/mangabar?style=for-the-badge&color=f1c40f&logo=github" alt="GitHub Stars"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-4caf50?style=for-the-badge" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-6c5ce7?style=for-the-badge" alt="Cross Platform">
@@ -79,19 +80,27 @@ Track your reading progress, organize titles by status (Reading, Completed, Plan
 
 ## 🚀 Quick Start in 60 Seconds
 
-### Installation
+### 1. From VS Code Marketplace (Recommended)
 
-Download the latest `.vsix` from the [GitHub Releases](https://github.com/j-a-y-e-s-h/mangabar/releases/latest) page, then install via command line or IDE UI:
+Search for **"MangaBar"** directly in your IDE Extensions tab (`Ctrl+Shift+X` or `Cmd+Shift+X`) and click **Install**.
 
+Or install instantly via your terminal:
 ```bash
-# Install via VS Code CLI:
-code --install-extension mangabar-0.2.0.vsix
-
-# Or install via Cursor CLI:
-cursor --install-extension mangabar-0.2.0.vsix
+code --install-extension j-a-y-e-s-h.mangabar
 ```
 
-*Or inside your IDE:*
+### 2. Manual VSIX Install (Cursor, Windsurf, VSCodium & Offline)
+
+Download `mangabar-0.2.0.vsix` from [GitHub Releases](https://github.com/j-a-y-e-s-h/mangabar/releases/latest), then run:
+```bash
+# For Cursor:
+cursor --install-extension mangabar-0.2.0.vsix
+
+# For VS Code / VSCodium:
+code --install-extension mangabar-0.2.0.vsix
+```
+
+*Or via IDE UI:*
 1. Open the Extensions View (`Ctrl+Shift+X` or `Cmd+Shift+X`).
 2. Click the **`...`** (Views and More Actions) menu in the top-right corner.
 3. Select **Install from VSIX...** and choose `mangabar-0.2.0.vsix`.
