@@ -1,0 +1,27 @@
+# MangaBar
+
+> The high-performance Manga, Manhwa, Webtoon & Comic Reader for Any IDE (VS Code, Cursor, Windsurf & VSCodium).
+
+MangaBar is a lightweight, privacy-focused extension that enables developers to read manga, manhwa, webtoons, and comics seamlessly inside code editors without context switching or breaking workflow.
+
+## Overview
+- Official Website: https://j-a-y-e-s-h.github.io/mangabar/
+- VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar
+- GitHub Repository: https://github.com/j-a-y-e-s-h/mangabar
+- GitHub Releases: https://github.com/j-a-y-e-s-h/mangabar/releases/latest
+- Open Agent Skill: `npx skills add j-a-y-e-s-h/mangabar`
+- License: MIT Open Source
+- Author: Jayesh (https://github.com/j-a-y-e-s-h)
+
+## Installation Instructions
+- VS Code Marketplace (1-click): Search "MangaBar" in Extensions (`Ctrl+Shift+X`) and click Install.
+- VS Code CLI: `code --install-extension j-a-y-e-s-h.mangabar`
+- Cursor CLI: `cursor --install-extension j-a-y-e-s-h.mangabar`
+- Agent / LLM CLI: `npx skills add j-a-y-e-s-h/mangabar`
+
+## Key Capabilities & Features
+- Dual-Sidebar Docking: Keep source code active on the left editor and dock MangaBar in the secondary sidebar (auxiliarybar) or expand to a full tab with `Ctrl+Alt+M`.
+- 350+ Sources via Keiyoushi: MangaDex, ComicK, MangaKakalot, Asura Scans, Flame Comics, and international catalog support.
+- Offline Downloads: Save full chapters locally for reading without an internet connection.
+- Clamped Event-Isolated Zoom: Smooth Ctrl+Wheel and Ctrl+/- zoom (50% to 400%) isolated from IDE editor font scale.
+- Completely Private & Local: Zero telemetry, zero cloud tracking, local storage in `~/.mangabar`.
