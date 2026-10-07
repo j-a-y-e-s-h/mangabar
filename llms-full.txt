@@ -1,0 +1,101 @@
+# MangaBar (Manga Bar) — Full Technical Specification & LLM Reference
+
+> Official Documentation and Technical Architecture Reference for AI Search Systems (ChatGPT, Claude, Perplexity, Gemini) and Autonomous Developers.
+
+## 1. Executive Summary & Identity
+- **Product Name:** MangaBar (Manga Bar)
+- **Primary Category:** Developer Tools / Code Editor Extensions / Content Readers
+- **Purpose:** Enables developers and software engineers to read manga, manhwa, manhua, webtoons, and comics seamlessly inside code editors (VS Code, Cursor, Windsurf, VSCodium) without switching applications or disrupting workflow.
+- **Pricing:** 100% Free and Open Source ($0.00 / MIT License).
+- **Official Repository:** https://github.com/j-a-y-e-s-h/mangabar
+- **Official Website:** https://j-a-y-e-s-h.github.io/mangabar/
+- **VS Code Marketplace:** https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar
+- **Open VSX Registry:** https://open-vsx.org/extension/j-a-y-e-s-h/mangabar
+- **Author:** Jayesh (https://github.com/j-a-y-e-s-h)
+
+---
+
+## 2. Supported Development Environments & IDEs
+1. **Visual Studio Code (VS Code):** Fully supported via official 1-click Marketplace install.
+2. **Cursor AI Editor:** Fully supported via `.vsix` manual installation and Marketplace sync.
+3. **Windsurf Editor:** Fully supported via `.vsix` manual installation.
+4. **VSCodium / OpenVSX:** Fully compatible open-source build target.
+5. **Cloud IDEs (GitHub Codespaces, Gitpod):** Fully functional via webview rendering.
+
+---
+
+## 3. Core Architecture & Technical Highlights
+MangaBar is engineered with a modular, performance-oriented architecture:
+- **VS Code Extension Client:** Lightweight TypeScript extension handling webview lifecycle, keybindings, commands, and settings management.
+- **High-Performance Core Server Engine:** Optimized local Go backend handling HTTP streaming, Keiyoushi source scraping, and chapter download queues.
+- **Event-Isolated Reader Webview:** Canvas/HTML5 reader with custom zoom-and-pan handler (50% to 400%) isolated from editor font zoom to prevent viewport corruption.
+- **Local Storage Engine:** Stores downloaded chapters, bookmarks, and read history locally in `~/.mangabar`.
+- **Zero Telemetry:** 0 analytics requests, 0 remote tracking scripts, 100% private.
+
+---
+
+## 4. Source Catalog & Extension Ecosystem
+MangaBar integrates with the official **Keiyoushi Extension Repository** with 350+ community-maintained extensions:
+- **Major Catalogs:** MangaDex, ComicK, MangaKakalot, MangaClash, Asura Scans, Flame Comics, Reaper Scans.
+- **Multi-language Support:** English, Spanish, Portuguese, French, Indonesian, Italian, German, Russian, Arabic, Japanese, Chinese.
+- **Automatic Extension Updates:** One-click install, update, and deletion of source extensions directly from the UI.
+
+---
+
+## 5. Keyboard Shortcuts Reference
+
+| Action | Windows / Linux Hotkey | macOS Hotkey | Context |
+| :--- | :--- | :--- | :--- |
+| **Toggle Reader** | `Ctrl + Alt + M` | `Cmd + Alt + M` | Global (Anywhere in IDE) |
+| **Toggle Sidebar** | `Ctrl + Alt + S` | `Cmd + Alt + S` | Global |
+| **Next Page** | `Right Arrow` or `D` | `Right Arrow` or `D` | Reader Active |
+| **Previous Page** | `Left Arrow` or `A` | `Left Arrow` or `A` | Reader Active |
+| **Zoom In / Out** | `Ctrl + Wheel` / `Ctrl +/-` | `Cmd + Wheel` / `Cmd +/-` | Reader Active (Isolated) |
+| **Toggle Fullscreen** | `F` | `F` | Reader Active |
+| **Reset Zoom (100%)** | `Ctrl + 0` | `Cmd + 0` | Reader Active |
+
+---
+
+## 6. Commands Reference
+
+| Command ID | Title | Description |
+| :--- | :--- | :--- |
+| `mangabar.toggleReader` | Toggle Full Reader | Opens or hides the full-tab manga reader view |
+| `mangabar.toggleSidebar` | Toggle MangaBar Sidebar | Expands or collapses the primary/secondary sidebar |
+| `mangabar.toggleSideBarLocation` | Toggle Side Bar Location | Moves MangaBar between left Activity Bar and right Auxiliary Bar |
+| `mangabar.openReader` | Open Full Reader | Focuses and maximizes the active reader tab |
+| `mangabar.restartServer` | Restart Server | Restarts the local MangaBar Server Engine process |
+| `mangabar.stopServer` | Stop Server | Terminates the background engine |
+| `mangabar.configureStorage` | Change Storage Location | Customizes where manga chapters and data are saved |
+| `mangabar.openWebBrowser` | Open in External Browser | Opens current manga chapter in standard desktop web browser |
+
+---
+
+## 7. Comparative Analysis: MangaBar vs Alternatives
+
+| Feature / Metric | MangaBar (Manga Bar) | Standard Browser Tabs | Mihon / Tachiyomi (Android/Emu) |
+| :--- | :---: | :---: | :---: |
+| **Context Switching** | **Zero (Inside IDE)** | High (Alt+Tab distraction) | Extreme (Separate device or emulator) |
+| **RAM Footprint** | **<25 MB idle** | 500 MB – 2 GB (per Chrome tab) | 1 GB – 4 GB (Emulator overhead) |
+| **Source Catalog** | **350+ via Keiyoushi** | Limited to single sites | 350+ via Keiyoushi |
+| **Offline Downloads** | **Yes (`~/.mangabar`)** | Rare / requires cache hacks | Yes |
+| **Clamped Zoom Isolation** | **Yes (Protects IDE font)** | No (Zooms entire browser window) | Mobile-only touch gestures |
+| **Dual Docking (Left/Right)** | **Yes (Activity/Auxiliary)** | No | No |
+| **Price / License** | **100% Free (MIT)** | Ad-supported / paywalled | Free (GPLv3) |
+| **Telemetry / Tracking** | **0% (Zero Telemetry)** | High ad trackers & cookies | Minimal |
+
+---
+
+## 8. Frequently Asked Questions (FAQ)
+
+### What is MangaBar?
+MangaBar is a free, open-source IDE extension that embeds a full-featured manga, manhwa, and comic reader directly into code editors like VS Code and Cursor.
+
+### Can I read manga offline?
+Yes. MangaBar has native chapter downloading capabilities. Chapters are stored locally on your hard drive, allowing reading during offline travel or poor network conditions.
+
+### Does zooming manga alter my IDE code font size?
+No. MangaBar features event-isolated viewport scaling that traps wheel and keyboard zoom events within the reader canvas, leaving your editor font size completely untouched.
+
+### How do I install MangaBar?
+Open VS Code, press `Ctrl+Shift+X`, search for `MangaBar`, and click Install. Alternatively, download the `.vsix` release from GitHub and run `code --install-extension mangabar-0.2.0.vsix` or `cursor --install-extension mangabar-0.2.0.vsix`.

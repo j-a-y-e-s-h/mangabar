@@ -11,6 +11,8 @@
   <a href="https://open-vsx.org/extension/j-a-y-e-s-h/mangabar"><img src="https://img.shields.io/badge/Open%20VSX-v0.2.0-7c3aed?style=for-the-badge&logo=eclipseide&logoColor=white" alt="Open VSX Registry"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/visual-studio-marketplace/i/j-a-y-e-s-h.mangabar?style=for-the-badge&color=00bcd4" alt="Installs"></a>
   <a href="https://github.com/j-a-y-e-s-h/mangabar/stargazers"><img src="https://img.shields.io/github/stars/j-a-y-e-s-h/mangabar?style=for-the-badge&color=f1c40f&logo=github" alt="GitHub Stars"></a>
+  <a href="https://skills.sh/"><img src="https://img.shields.io/badge/Agent_Skill-npx_skills_add_j--a--y--e--s--h%2Fmangabar-00e5ff?style=for-the-badge&logo=anthropic&logoColor=white" alt="Agent Skill"></a>
+  <a href="llms.txt"><img src="https://img.shields.io/badge/LLMs.txt-Supported-blueviolet?style=for-the-badge" alt="LLMs.txt Supported"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-4caf50?style=for-the-badge" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-6c5ce7?style=for-the-badge" alt="Cross Platform">
   <img src="https://img.shields.io/badge/Sources-350%2B%20Extensions-ff7675?style=for-the-badge" alt="350+ Sources">
@@ -28,6 +30,7 @@
 - [Commands Reference](#️-commands-reference)
 - [Extension Settings](#️-extension-settings)
 - [Frequently Asked Questions (FAQ)](#-frequently-asked-questions-faq)
+- [AI Agents & LLM Integration](#-ai-agents--llm-integration)
 - [Contributing & Community](#-contributing--community)
 - [Compatibility](#-compatibility)
 - [License & Attribution](#-license--attribution)
@@ -188,6 +191,21 @@ To keep your IDE launch blazing fast and conserve system CPU and RAM during heav
 
 ### 6. Where is my personal data and reading history stored?
 All manga library records, reading status, settings, and downloaded chapters are stored entirely locally on your computer at `~/.mangabar`. No account creation, telemetry, or external cloud syncing is required.
+
+---
+
+## 🤖 AI Agents & LLM Integration
+
+MangaBar natively supports the open agent skills ecosystem and AI documentation standards so agents (Claude Code, Cursor, Copilot, ChatGPT, Gemini, Codex) can discover, install, and automate it:
+
+- **Install Open Agent Skill**:
+  ```bash
+  npx skills add j-a-y-e-s-h/mangabar
+  ```
+- **Context for LLMs & AI Search (`llms.txt`)**:
+  - Concise specification: [`llms.txt`](llms.txt) (served at `https://j-a-y-e-s-h.github.io/mangabar/llms.txt`)
+  - Full technical spec: [`llms-full.txt`](llms-full.txt) (served at `https://j-a-y-e-s-h.github.io/mangabar/llms-full.txt`)
+  - Free & Open-source license: [`pricing.md`](pricing.md)
 
 ---
 
