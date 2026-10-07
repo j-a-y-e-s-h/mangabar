@@ -6,6 +6,10 @@
 
 web
 
+## Stack
+
+TypeScript, VS Code Extension API, Vanilla HTML5 / CSS3 / JavaScript (Zero framework overhead for maximum performance and instant load).
+
 ## Users
 
 Developers, software engineers, and students who read manga, manhwa, webtoons, and comics during coding sessions, breaks, or compilation times and want zero context-switching away from their code editor (VS Code, Cursor, Windsurf, VSCodium).
