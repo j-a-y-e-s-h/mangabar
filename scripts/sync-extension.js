@@ -64,25 +64,74 @@ for (const targetDir of candidates) {
     // 4. Copy README.md (both case variations for IDE details webview)
     copyRecursive(path.join(rootDir, 'README.md'), path.join(targetDir, 'README.md'));
     copyRecursive(path.join(rootDir, 'README.md'), path.join(targetDir, 'readme.md'));
-    // 5. Copy bin/ if present in workspace and missing in target extension
+    // 5. Sync and migrate bin/ in target extension
     const srcBin = path.join(rootDir, 'bin');
     const targetBin = path.join(targetDir, 'bin');
-    if (fs.existsSync(srcBin) && !fs.existsSync(targetBin)) {
-      console.log(`[MangaBar Sync] Copying binary runtime to: ${targetBin}`);
-      copyRecursive(srcBin, targetBin);
+    if (fs.existsSync(srcBin)) {
+      if (!fs.existsSync(targetBin)) {
+        console.log(`[MangaBar Sync] Copying binary runtime to: ${targetBin}`);
+        copyRecursive(srcBin, targetBin);
+      } else {
+        // Auto-migrate old jre folder to jre21 in target extension
+        const oldTargetJre = path.join(targetBin, 'jre');
+        const newTargetJre = path.join(targetBin, 'jre21');
+        if (fs.existsSync(oldTargetJre)) {
+          try {
+            if (!fs.existsSync(newTargetJre)) {
+              console.log(`[MangaBar Sync] Migrating old JRE to jre21 in ${targetDir}`);
+              fs.renameSync(oldTargetJre, newTargetJre);
+            } else {
+              fs.rmSync(oldTargetJre, { recursive: true, force: true });
+            }
+          } catch (e) {
+            console.log(`[MangaBar Sync] Migration notice: ${e.message}`);
+          }
+        }
+        // Ensure jre21 exists in target
+        const srcJre21 = path.join(srcBin, 'jre21');
+        if (fs.existsSync(srcJre21) && !fs.existsSync(newTargetJre)) {
+          console.log(`[MangaBar Sync] Copying jre21 to: ${newTargetJre}`);
+          copyRecursive(srcJre21, newTargetJre);
+        }
+        // Ensure mangabar-server.jar exists in target
+        const srcJar = path.join(srcBin, 'mangabar-server.jar');
+        const targetJar = path.join(targetBin, 'mangabar-server.jar');
+        if (fs.existsSync(srcJar) && !fs.existsSync(targetJar)) {
+          fs.copyFileSync(srcJar, targetJar);
+        }
+        // Ensure patched classes exist in target
+        const srcClasses = path.join(srcBin, 'classes');
+        const targetClasses = path.join(targetBin, 'classes');
+        if (fs.existsSync(srcClasses)) {
+          copyRecursive(srcClasses, targetClasses);
+        }
+      }
     }
     syncCount++;
   }
 }
 
-// Also ensure ~/.mangabar/bin has a copy of the server jar and jre if available
+// Also ensure ~/.mangabar/bin has a copy of the server jar, jre21, and classes if available
 const srcBin = path.join(rootDir, 'bin');
 const globalMangabarBin = path.join(os.homedir(), '.mangabar', 'bin');
 if (fs.existsSync(srcBin)) {
+  const oldGlobalJre = path.join(globalMangabarBin, 'jre');
+  const newGlobalJre = path.join(globalMangabarBin, 'jre21');
+  if (fs.existsSync(oldGlobalJre) && !fs.existsSync(newGlobalJre)) {
+    try {
+      fs.renameSync(oldGlobalJre, newGlobalJre);
+    } catch {}
+  }
   const globalJar = path.join(globalMangabarBin, 'mangabar-server.jar');
   if (!fs.existsSync(globalJar)) {
     console.log(`[MangaBar Sync] Ensuring global ~/.mangabar/bin runtime...`);
     copyRecursive(srcBin, globalMangabarBin);
+  } else {
+    const srcClasses = path.join(srcBin, 'classes');
+    const globalClasses = path.join(globalMangabarBin, 'classes');
+    if (fs.existsSync(srcClasses)) {
+      copyRecursive(srcClasses, globalClasses);
+    }
   }
 }
 

@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import * as child_process from 'child_process';
 import * as http from 'http';
+import * as https from 'https';
 import * as net from 'net';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ConfigManager } from './configManager';
 import {
   getServerJarPath,
+  getPatchedClassesDir,
   isServerJarInstalled,
   ensureServerJar,
   resolveJavaExecutable,
@@ -29,6 +31,7 @@ export class ServerManager {
   public readonly onDidChangeState = this.stateChangeEmitter.event;
   private idleTimer: NodeJS.Timeout | null = null;
   private readonly idleTimeoutMs: number = 15 * 60 * 1000; // 15 minutes auto-sleep
+  private watchdogTimer: NodeJS.Timeout | null = null;
 
   constructor(private context: vscode.ExtensionContext, configManager?: ConfigManager) {
     this.outputChannel = vscode.window.createOutputChannel('MangaBar Server');
@@ -56,7 +59,11 @@ export class ServerManager {
   public async ensureRunningOnDemand(): Promise<boolean> {
     this.resetIdleTimer();
     if (this.state === 'RUNNING') {
-      return true;
+      const healthy = await this.isServerHealthy(this.currentPort);
+      if (healthy) {
+        return true;
+      }
+      this.setState('STOPPED');
     }
     if (this.state === 'STARTING') {
       return new Promise<boolean>((resolve) => {
@@ -271,13 +278,16 @@ export class ServerManager {
                   .replace(/Tachiyomi/gi, 'MangaBar')
                   .replace(/Mihon/gi, 'MangaBar');
 
-                // Inject proper favicon and touch icon tags in head
+                // Inject proper favicon, touch icon tags, and dark-theme background style in head
                 const faviconTags =
                   '<link rel="icon" type="image/png" href="/apple-touch-icon.png" />' +
                   '<link rel="icon" type="image/svg+xml" href="/__mangabar_icon.svg" />' +
                   '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />';
+                const darkHeadStyles =
+                  '<style>html, body, #root { background-color: #121212 !important; background: #121212 !important; color: #e0e0e0 !important; color-scheme: dark !important; }</style>' +
+                  '<script>try{localStorage.setItem("suwayomi_webui__theme_background","\\"#121212\\"");localStorage.setItem("suwayomi_webui__theme_mode","\\"dark\\"");document.documentElement.style.backgroundColor="#121212";}catch(_){}</script>';
                 if (body.includes('</head>')) {
-                  body = body.replace('</head>', `${faviconTags}</head>`);
+                  body = body.replace('</head>', `${faviconTags}${darkHeadStyles}</head>`);
                 }
 
                 const injected = body.includes('</body>')
@@ -349,8 +359,93 @@ export class ServerManager {
 
         upstream.on('error', (err) => {
           if (!res.headersSent) {
-            res.writeHead(502);
-            res.end('Proxy error: ' + err.message);
+            const accept = req.headers['accept'] || '';
+            const isHtmlReq =
+              (typeof accept === 'string' && accept.includes('text/html')) ||
+              req.url === '/' ||
+              req.url?.startsWith('/?') ||
+              req.url?.startsWith('/manga');
+
+            if (isHtmlReq) {
+              const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MangaBar - Connecting</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: #181818;
+      color: #d4d4d4;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      padding: 24px 16px;
+      user-select: none;
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-top-color: #0078d4;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .subtitle { font-size: 11.5px; opacity: 0.7; max-width: 260px; line-height: 1.45; margin-bottom: 18px; }
+    .action-btn {
+      background: #0078d4;
+      color: #ffffff;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .action-btn:hover { background: #0066b3; }
+  </style>
+</head>
+<body>
+  <div class="spinner"></div>
+  <div class="title">Connecting to MangaBar Server Engine…</div>
+  <div class="subtitle">Waiting for server on port ${targetPort} to become responsive. The page will auto-refresh once ready.</div>
+  <button class="action-btn" onclick="location.reload()">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
+    <span>Retry Now</span>
+  </button>
+  <script>
+    let pollInterval = setInterval(() => {
+      fetch('/api/v1/about')
+        .then((r) => {
+          if (r.ok) {
+            clearInterval(pollInterval);
+            location.reload();
+          }
+        })
+        .catch(() => {});
+    }, 1500);
+  </script>
+</body>
+</html>`;
+              res.writeHead(200, {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+              });
+              res.end(html);
+            } else {
+              res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' });
+              res.end('Proxy error: ' + err.message);
+            }
           }
         });
 
@@ -402,21 +497,61 @@ export class ServerManager {
   }
 
   private setState(newState: ServerState) {
+    if (this.state === newState) return;
     this.state = newState;
+    if (newState === 'RUNNING') {
+      this.startWatchdog();
+    } else {
+      this.stopWatchdog();
+    }
     this.stateChangeEmitter.fire(newState);
   }
 
-  /**
-   * Tests if MangaBar server's HTTP or GraphQL API is already alive and responding on a port.
-   */
-  public async isServerHealthy(port: number): Promise<boolean> {
-    const url = `http://127.0.0.1:${port}/`;
+  private startWatchdog(): void {
+    this.stopWatchdog();
+    this.watchdogTimer = setInterval(async () => {
+      if (this.state === 'RUNNING') {
+        const customUrl = this.configManager.getCustomServerUrl();
+        const healthy = customUrl
+          ? await this.testUrlReachable(customUrl)
+          : await this.isServerHealthy(this.currentPort);
+        if (!healthy) {
+          // Double-check with a 2nd probe 1.5s later to prevent false positive drops
+          await new Promise((r) => setTimeout(r, 1500));
+          const retryHealthy = customUrl
+            ? await this.testUrlReachable(customUrl)
+            : await this.isServerHealthy(this.currentPort);
+          if (!retryHealthy && this.state === 'RUNNING') {
+            this.outputChannel.appendLine(
+              `[MangaBar Watchdog] Server engine on port ${this.currentPort} is no longer responding. Updating state to STOPPED.`
+            );
+            this.setState('STOPPED');
+          }
+        }
+      }
+    }, 5000);
+  }
+
+  private stopWatchdog(): void {
+    if (this.watchdogTimer) {
+      clearInterval(this.watchdogTimer);
+      this.watchdogTimer = null;
+    }
+  }
+
+  public setOfflineState(): void {
+    if (this.state === 'RUNNING') {
+      this.setState('STOPPED');
+    }
+  }
+
+  public async testUrlReachable(urlStr: string): Promise<boolean> {
     try {
       return await new Promise<boolean>((resolve) => {
-        const req = http.get(url, { timeout: 1500 }, (res) => {
+        const client = urlStr.startsWith('https') ? https : http;
+        const req = client.get(urlStr, { timeout: 2500 }, (res) => {
           res.resume();
-          // Status 200 means server engine and webui are responsive
-          resolve(res.statusCode === 200);
+          resolve(res.statusCode !== undefined && res.statusCode < 500);
         });
         req.on('error', () => resolve(false));
         req.on('timeout', () => {
@@ -427,6 +562,32 @@ export class ServerManager {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Tests if MangaBar server's HTTP or GraphQL API is already alive and responding on a port.
+   */
+  public async isServerHealthy(port: number): Promise<boolean> {
+    const endpoints = ['/', '/api/graphql', '/api/v1'];
+    for (const ep of endpoints) {
+      try {
+        const ok = await new Promise<boolean>((resolve) => {
+          const req = http.get(`http://127.0.0.1:${port}${ep}`, { timeout: 1500 }, (res) => {
+            res.resume();
+            resolve(res.statusCode !== undefined && (res.statusCode === 200 || res.statusCode === 302 || res.statusCode === 404));
+          });
+          req.on('error', () => resolve(false));
+          req.on('timeout', () => {
+            req.destroy();
+            resolve(false);
+          });
+        });
+        if (ok) return true;
+      } catch {
+        // continue
+      }
+    }
+    return false;
   }
 
   private async isPortAvailable(port: number): Promise<boolean> {
@@ -576,9 +737,21 @@ export class ServerManager {
     // STEP 0: Check if a custom server URL is configured
     const customUrl = this.configManager.getCustomServerUrl();
     if (customUrl) {
-      this.outputChannel.appendLine(`[MangaBar] Using custom server URL: ${customUrl}`);
-      this.setState('RUNNING');
-      return true;
+      this.outputChannel.appendLine(`[MangaBar] Checking custom server URL: ${customUrl}`);
+      const isReachable = await this.testUrlReachable(customUrl);
+      if (isReachable) {
+        this.outputChannel.appendLine(`[MangaBar] Custom server is responsive. Connecting directly.`);
+        await this.startProxyServer();
+        this.setState('RUNNING');
+        return true;
+      } else {
+        this.outputChannel.appendLine(`[MangaBar] Custom server at ${customUrl} is not responding.`);
+        vscode.window.showErrorMessage(
+          `MangaBar could not reach server at ${customUrl}. Check that the external server is running, or clear customServerUrl in settings.`
+        );
+        this.setState('ERROR');
+        return false;
+      }
     }
 
     const defaultPort = this.configManager.getConfiguredPort();
@@ -710,25 +883,35 @@ export class ServerManager {
     this.setState('STARTING');
 
     const javaArgs = [
-      '-Xmx384m',
+      '-Xmx512m',
       '-Xms64m',
-      '-XX:+UseSerialGC',
-      '-XX:TieredStopAtLevel=1',
       '--add-opens=java.base/java.lang=ALL-UNNAMED',
       '--add-opens=java.base/java.util=ALL-UNNAMED',
       '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
       '-Djava.awt.headless=true',
-      '-Dserver.initialOpenInBrowserEnabled=false',
-      '-Dserver.systemTrayEnabled=false',
-      '-Dsuwayomi.tachidesk.server.initialOpenInBrowserEnabled=false',
-      '-Dsuwayomi.tachidesk.server.systemTrayEnabled=false',
-      '-jar',
-      jarPath,
-      `--server.port=${this.currentPort}`,
-      `--server.data-dir=${dataDir}`,
-      '--server.initialOpenInBrowserEnabled=false',
-      '--server.systemTrayEnabled=false',
+      `-Dconfig.file=${toSafePath(path.join(dataDir, 'server.conf'))}`,
+      `-Dsuwayomi.tachidesk.config.server.rootDir=${dataDir}`,
+      `-Dsuwayomi.tachidesk.config.server.port=${this.currentPort}`,
+      '-Dsuwayomi.tachidesk.config.server.ip=127.0.0.1',
+      '-Dsuwayomi.tachidesk.config.server.initialOpenInBrowserEnabled=false',
+      '-Dsuwayomi.tachidesk.config.server.systemTrayEnabled=false',
+      '-Dsuwayomi.tachidesk.config.server.kcefEnabled=false',
+      '-Dsuwayomi.tachidesk.config.server.webUIInterface=BROWSER',
+      '-Dsuwayomi.tachidesk.config.server.webUIUpdateCheckInterval=0.0',
     ];
+
+    const patchedClasses = getPatchedClassesDir(extensionRoot, workspaceRoot);
+    if (patchedClasses) {
+      const safePatched = toSafePath(patchedClasses);
+      this.outputChannel.appendLine(`[MangaBar] Applying engine startup hotfix classes: ${safePatched}`);
+      javaArgs.push(
+        '-cp',
+        `${safePatched}${path.delimiter}${jarPath}`,
+        'suwayomi.tachidesk.MainKt'
+      );
+    } else {
+      javaArgs.push('-jar', jarPath);
+    }
 
     let lastErrorOutput = '';
     let processExitedEarly = false;
@@ -811,7 +994,13 @@ export class ServerManager {
     getLastError: () => string
   ): Promise<boolean> {
     const startTime = Date.now();
-    const url = `${this.getRawServerUrl()}/api/v1/about`;
+    const rawUrl = this.getRawServerUrl();
+    const probeUrls = [
+      `${rawUrl}/api/graphql`,
+      `${rawUrl}/api/v1`,
+      `${rawUrl}/api/v1/system/about`,
+      `${rawUrl}/`,
+    ];
 
     while (Date.now() - startTime < timeoutMs) {
       // Early exit detection: don't hang if process died
@@ -823,24 +1012,26 @@ export class ServerManager {
         return false;
       }
 
-      try {
-        const isUp = await new Promise<boolean>((resolve) => {
-          const req = http.get(url, { timeout: 1500 }, (res) => {
-            res.resume();
-            resolve(res.statusCode === 200);
+      for (const url of probeUrls) {
+        try {
+          const isUp = await new Promise<boolean>((resolve) => {
+            const req = http.get(url, { timeout: 1500 }, (res) => {
+              res.resume();
+              resolve(res.statusCode === 200 || res.statusCode === 302);
+            });
+            req.on('error', () => resolve(false));
+            req.on('timeout', () => {
+              req.destroy();
+              resolve(false);
+            });
           });
-          req.on('error', () => resolve(false));
-          req.on('timeout', () => {
-            req.destroy();
-            resolve(false);
-          });
-        });
 
-        if (isUp) {
-          return true;
+          if (isUp) {
+            return true;
+          }
+        } catch {
+          // continue polling
         }
-      } catch {
-        // continue polling
       }
       await new Promise((r) => setTimeout(r, 1000));
     }
@@ -925,6 +1116,7 @@ export class ServerManager {
   }
 
   public dispose() {
+    this.stopWatchdog();
     this.stopProxyServer();
     this.stopServer();
     this.outputChannel.dispose();

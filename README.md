@@ -7,9 +7,9 @@
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/visual-studio-marketplace/v/j-a-y-e-s-h.mangabar?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=Marketplace" alt="VS Code Marketplace"></a>
-  <a href="https://open-vsx.org/extension/j-a-y-e-s-h/mangabar"><img src="https://img.shields.io/badge/Open%20VSX-v0.2.0-7c3aed?style=for-the-badge&logo=eclipseide&logoColor=white" alt="Open VSX Registry"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/visual-studio-marketplace/i/j-a-y-e-s-h.mangabar?style=for-the-badge&color=00bcd4" alt="Installs"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/badge/Marketplace-v0.2.1-007acc?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="VS Code Marketplace"></a>
+  <a href="https://open-vsx.org/extension/j-a-y-e-s-h/mangabar"><img src="https://img.shields.io/badge/Open%20VSX-v0.2.1-7c3aed?style=for-the-badge&logo=eclipseide&logoColor=white" alt="Open VSX Registry"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/badge/Downloads-250%2B-00bcd4?style=for-the-badge" alt="Installs"></a>
   <a href="https://github.com/j-a-y-e-s-h/mangabar/stargazers"><img src="https://img.shields.io/github/stars/j-a-y-e-s-h/mangabar?style=for-the-badge&color=f1c40f&logo=github" alt="GitHub Stars"></a>
   <a href="https://skills.sh/"><img src="https://img.shields.io/badge/Agent_Skill-npx_skills_add_j--a--y--e--s--h%2Fmangabar-00e5ff?style=for-the-badge&logo=anthropic&logoColor=white" alt="Agent Skill"></a>
   <a href="llms.txt"><img src="https://img.shields.io/badge/LLMs.txt-Supported-blueviolet?style=for-the-badge" alt="LLMs.txt Supported"></a>

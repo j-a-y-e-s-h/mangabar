@@ -5,6 +5,8 @@ import * as http from 'http';
 import * as child_process from 'child_process';
 import { URL } from 'url';
 
+import * as os from 'os';
+
 export const SERVER_VERSION = 'v2.4.2366';
 export const RELEASE_TAG = 'v0.2.0';
 export const JAR_FILENAME = 'mangabar-server.jar';
@@ -25,6 +27,10 @@ export function getServerJarPath(extensionRoot: string, workspaceRoot?: string):
   const candidateDirs = [
     path.join(extensionRoot, 'bin'),
     workspaceRoot ? path.join(workspaceRoot, 'bin') : null,
+    path.join(os.homedir(), '.mangabar', 'bin'),
+    path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0-universal', 'bin'),
+    path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0', 'bin'),
+    path.join(os.homedir(), 'Desktop', 'PROS', 'IDE Mihon', 'bin'),
   ].filter(Boolean) as string[];
 
   // 1. Check if mangabar-server.jar exists in any candidate dir
@@ -55,6 +61,25 @@ export function getServerJarPath(extensionRoot: string, workspaceRoot?: string):
   }
 
   return path.join(extensionRoot, 'bin', JAR_FILENAME);
+}
+
+export function getPatchedClassesDir(extensionRoot: string, workspaceRoot?: string): string | null {
+  const candidateDirs = [
+    path.join(extensionRoot, 'bin', 'classes'),
+    workspaceRoot ? path.join(workspaceRoot, 'bin', 'classes') : null,
+    path.join(os.homedir(), '.mangabar', 'bin', 'classes'),
+    path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0-universal', 'bin', 'classes'),
+    path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0', 'bin', 'classes'),
+    path.join(os.homedir(), 'Desktop', 'PROS', 'IDE Mihon', 'bin', 'classes'),
+  ].filter(Boolean) as string[];
+
+  for (const dir of candidateDirs) {
+    const mainClass = path.join(dir, 'suwayomi', 'tachidesk', 'MainKt.class');
+    if (fs.existsSync(mainClass)) {
+      return dir;
+    }
+  }
+  return null;
 }
 
 export function isServerJarInstalled(extensionRoot: string, workspaceRoot?: string): boolean {
@@ -104,16 +129,41 @@ export function checkJavaVersion(javaExecutable: string): number | null {
   return null;
 }
 
+export function autoMigrateJreFolder(extensionRoot: string, workspaceRoot?: string): void {
+  const dirs = [extensionRoot, workspaceRoot].filter(Boolean) as string[];
+  for (const root of dirs) {
+    try {
+      const oldJre = path.join(root, 'bin', 'jre');
+      const newJre = path.join(root, 'bin', 'jre21');
+      if (fs.existsSync(oldJre) && !fs.existsSync(newJre)) {
+        fs.renameSync(oldJre, newJre);
+      }
+    } catch {
+      // Ignore migration errors if locked
+    }
+  }
+}
+
 export function findLocalJreExecutable(extensionRoot: string, workspaceRoot?: string): string | null {
+  autoMigrateJreFolder(extensionRoot, workspaceRoot);
+
   const exeName = process.platform === 'win32' ? 'java.exe' : 'java';
   const candidates = [
+    path.join(extensionRoot, 'bin', 'jre21', 'bin', exeName),
+    path.join(extensionRoot, 'jre21', 'bin', exeName),
     path.join(extensionRoot, 'bin', 'jre', 'bin', exeName),
     path.join(extensionRoot, 'jre', 'bin', exeName),
   ];
   if (workspaceRoot) {
+    candidates.push(path.join(workspaceRoot, 'bin', 'jre21', 'bin', exeName));
+    candidates.push(path.join(workspaceRoot, 'jre21', 'bin', exeName));
     candidates.push(path.join(workspaceRoot, 'bin', 'jre', 'bin', exeName));
     candidates.push(path.join(workspaceRoot, 'jre', 'bin', exeName));
   }
+  candidates.push(path.join(os.homedir(), '.mangabar', 'bin', 'jre21', 'bin', exeName));
+  candidates.push(path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0-universal', 'bin', 'jre21', 'bin', exeName));
+  candidates.push(path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0', 'bin', 'jre21', 'bin', exeName));
+  candidates.push(path.join(os.homedir(), 'Desktop', 'PROS', 'IDE Mihon', 'bin', 'jre21', 'bin', exeName));
 
   for (const cand of candidates) {
     if (fs.existsSync(cand)) {
@@ -158,11 +208,11 @@ export async function resolveJavaExecutable(
     return 'java';
   }
 
-  // 4. If on Windows and Java 21 is missing, download portable Adoptium JRE 21 into extensionRoot/bin/jre
+  // 4. If on Windows and Java 21 is missing, download portable Adoptium JRE 21 into extensionRoot/bin/jre21
   if (process.platform === 'win32') {
     const binDir = getBinDirectory(extensionRoot);
     const zipPath = path.join(binDir, 'jre21.zip');
-    const jreTarget = path.join(binDir, 'jre');
+    const jreTarget = path.join(binDir, 'jre21');
 
     await downloadFileWithRedirects(ADOPTIUM_JRE21_URL, zipPath, (downloaded, total) => {
       if (onProgress && total > 0) {
@@ -179,7 +229,7 @@ export async function resolveJavaExecutable(
       { windowsHide: true }
     );
 
-    // Locate extracted directory and rename to 'jre'
+    // Locate extracted directory and rename to 'jre21'
     const items = fs.readdirSync(binDir);
     const extractedDir = items.find((i) => i.startsWith('jdk-21') || i.startsWith('jre-21'));
     if (extractedDir) {

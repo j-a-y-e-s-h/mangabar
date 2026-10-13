@@ -167,15 +167,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.webviewView.webview.html = this.getHtmlForState(state, serverUrl, port, dataDir, sideLocation);
   }
 
-  public reloadView(): void {
+  public async reloadView(): Promise<void> {
     if (!this.webviewView) {
       return;
     }
-    if (this.serverManager.getState() === 'RUNNING') {
-      this.webviewView.webview.postMessage({ type: 'reload' });
-    } else {
+    const isHealthy = await this.serverManager.isServerHealthy(this.serverManager.getPort());
+    if (!isHealthy) {
+      this.serverManager.setOfflineState();
       this.updateWebviewContent();
+      return;
     }
+    this.webviewView.webview.postMessage({ type: 'reload' });
   }
 
   private getHtmlForState(
@@ -224,6 +226,45 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       flex-shrink: 0;
       gap: 6px;
       z-index: 10;
+    }
+    .nav-cluster {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .toolbar-sep {
+      width: 1px;
+      height: 16px;
+      background: ${borderColor};
+      margin: 0 3px;
+      flex-shrink: 0;
+    }
+    .zoom-pill {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'};
+      border: 1px solid ${borderColor};
+      color: ${textColor};
+      cursor: pointer;
+      user-select: none;
+      line-height: 1.2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 24px;
+      transition: all 0.15s ease;
+    }
+    .zoom-pill:hover {
+      background: ${isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.09)'};
+      border-color: rgba(56, 189, 248, 0.5);
+      color: #38bdf8;
+    }
+    .zoom-pill:active {
+      transform: scale(0.95);
     }
     .status-badge {
       display: flex;
@@ -511,7 +552,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       height: 100%;
       border: none;
       flex: 1;
-      background: #ffffff;
+      background: ${isDark ? '#121212' : '#f5f5f5'} !important;
+      color-scheme: ${isDark ? 'dark' : 'light'} !important;
     }
 
     /* Iframe Loading Overlay */
@@ -621,16 +663,50 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   <!-- Top Controls Bar -->
   <div class="header-bar">
-    <div class="status-badge">
-      <span class="indicator ${state.toLowerCase()}"></span>
-      <span>${state === 'RUNNING' ? 'Running' : state === 'STARTING' ? 'Starting...' : state === 'ERROR' ? 'Error' : 'Stopped'}</span>
-      ${state === 'RUNNING' ? `<span style="opacity:0.55;">:${port}</span>` : ''}
+    <div class="nav-cluster">
+      ${
+        state === 'RUNNING'
+          ? `
+          <button class="secondary icon-btn" id="btnNavBack" title="Back to Manga (Backspace / B / Alt+Left)" onclick="navBack()">
+            <svg class="icon-svg" viewBox="0 0 16 16"><path d="M7.78 12.53a.75.75 0 0 1-1.06 0L2.47 8.28a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 1.06L4.31 7.5h8.94a.75.75 0 0 1 0 1.5H4.31l3.47 3.47a.75.75 0 0 1 0 1.06z"/></svg>
+          </button>
+          <button class="secondary icon-btn" id="btnNavForward" title="Forward (Alt+Right)" onclick="navForward()">
+            <svg class="icon-svg" viewBox="0 0 16 16"><path d="M8.22 3.47a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.69 8.5H2.75a.75.75 0 0 1 0-1.5h8.94L8.22 3.53a.75.75 0 0 1 0-1.06z"/></svg>
+          </button>
+          <button class="secondary icon-btn" id="btnNavHome" title="Library Home (H)" onclick="navHome()">
+            <svg class="icon-svg" viewBox="0 0 16 16"><path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 2 7.5V14a1 1 0 0 0 1 1h2.5a.5.5 0 0 0 .5-.5V11h4v3.5a.5.5 0 0 0 .5.5H13a1 1 0 0 0 1-1V7.5a.5.5 0 0 0 .354-.854l-6-6z"/></svg>
+          </button>
+          <div class="toolbar-sep"></div>
+          `
+          : ''
+      }
+      <div class="status-badge">
+        <span class="indicator ${state.toLowerCase()}"></span>
+        <span>${state === 'RUNNING' ? 'Running' : state === 'STARTING' ? 'Starting...' : state === 'ERROR' ? 'Error' : 'Stopped'}</span>
+        ${state === 'RUNNING' ? `<span style="opacity:0.55;">:${port}</span>` : ''}
+      </div>
     </div>
     
     <div class="actions">
       ${
         state === 'RUNNING'
           ? `
+          <!-- Zoom & Scroll Controls -->
+          <div class="nav-cluster">
+            <button class="secondary icon-btn" title="Zoom Out (-)" onclick="zoomOut()">
+              <svg class="icon-svg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M2 8a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 8z"/></svg>
+            </button>
+            <div class="zoom-pill" id="zoomLevelDisplay" title="Click to Reset Zoom (0)" onclick="zoomReset()">100%</div>
+            <button class="secondary icon-btn" title="Zoom In (+)" onclick="zoomIn()">
+              <svg class="icon-svg" viewBox="0 0 16 16"><path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z"/></svg>
+            </button>
+            <button class="secondary icon-btn" title="Scroll Down (Space / ▼)" onclick="scrollDown()">
+              <svg class="icon-svg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 6.646a.5.5 0 0 1 .708 0L8 12.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/><path fill-rule="evenodd" d="M1.646 2.646a.5.5 0 0 1 .708 0L8 8.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>
+            </button>
+          </div>
+
+          <div class="toolbar-sep"></div>
+
           <button id="toggleDrawerBtn" class="secondary" title="Extension Stores & Repositories" onclick="toggleDrawer()">
             <svg class="icon-svg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.5 1.25a.75.75 0 0 0-1 0L1.75 5.5v5a.75.75 0 0 0 .37.65l5.5 3.25a.75.75 0 0 0 .76 0l5.5-3.25a.75.75 0 0 0 .37-.65v-5L8.5 1.25zM2.5 6.06l5 2.95 5-2.95L8 3.4 2.5 6.06zm5.75 3.82v4.83l4.5-2.66V7.22l-4.5 2.66zm-1.5 0L2.25 7.22v4.83l4.5 2.66V9.88z"/></svg>
             <span>Stores</span>
@@ -758,7 +834,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             </div>
             <div class="loader-label">Loading MangaBar WebUI…</div>
           </div>
-          <iframe id="mangabarFrame" src="${serverUrl}" allow="clipboard-read; clipboard-write" onload="hideLoader()"></iframe>`
+          <iframe id="mangabarFrame" src="${serverUrl}" allow="clipboard-read; clipboard-write" onload="onIframeLoad()"></iframe>`
         : state === 'STARTING'
         ? `
         <div class="placeholder-card">
@@ -867,9 +943,110 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    // Handle messages sent back from the extension host
+    // Bridge commands to the reading frame
+    function sendCmd(action) {
+      const iframe = document.getElementById('mangabarFrame');
+      if (iframe && iframe.contentWindow) {
+        try {
+          iframe.contentWindow.postMessage({ type: 'mangabar_cmd', action }, '*');
+        } catch (_) {}
+      }
+    }
+
+    function navBack() {
+      sendCmd('back');
+      const iframe = document.getElementById('mangabarFrame');
+      if (iframe && iframe.contentWindow) {
+        try { iframe.contentWindow.history.back(); } catch (_) {}
+      }
+    }
+
+    function navForward() {
+      sendCmd('forward');
+      const iframe = document.getElementById('mangabarFrame');
+      if (iframe && iframe.contentWindow) {
+        try { iframe.contentWindow.history.forward(); } catch (_) {}
+      }
+    }
+
+    function navHome() {
+      sendCmd('home');
+    }
+
+    function zoomIn() {
+      sendCmd('zoomIn');
+    }
+
+    function zoomOut() {
+      sendCmd('zoomOut');
+    }
+
+    function zoomReset() {
+      sendCmd('zoomReset');
+    }
+
+    function scrollDown() {
+      sendCmd('scrollDown');
+    }
+
+    function scrollUp() {
+      sendCmd('scrollUp');
+    }
+
+    function prevPage() {
+      sendCmd('prevPage');
+    }
+
+    function nextPage() {
+      sendCmd('nextPage');
+    }
+
+    // Outer window key shortcuts when webview has focus
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '=' || e.key === '+') {
+          e.preventDefault();
+          zoomIn();
+          return;
+        } else if (e.key === '-' || e.key === '_') {
+          e.preventDefault();
+          zoomOut();
+          return;
+        } else if (e.key === '0') {
+          e.preventDefault();
+          zoomReset();
+          return;
+        }
+      }
+      if (e.key === '+' || e.key === '=') {
+        zoomIn();
+      } else if (e.key === '-' || e.key === '_') {
+        zoomOut();
+      } else if (e.key === '0') {
+        zoomReset();
+      } else if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowLeft') || e.key === 'b' || e.key === 'B') {
+        e.preventDefault();
+        navBack();
+      } else if (e.key === 'h' || e.key === 'H') {
+        navHome();
+      } else if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        scrollDown();
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        scrollUp();
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        nextPage();
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        prevPage();
+      }
+    });
+
+    // Handle messages sent back from the extension host and reader frame
     window.addEventListener('message', (event) => {
       const msg = event.data;
+      if (!msg) return;
       if (msg.type === 'storeSummary') {
         const badge = document.getElementById('extensionCountBadge');
         if (badge) {
@@ -887,30 +1064,107 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           reloadFrame();
         }
       } else if (msg.type === 'reload') {
-        reloadFrame();
+        const loader = document.getElementById('iframeLoader');
+        if (loader) loader.classList.remove('hidden');
+        sendCmd('reload');
+      } else if (msg.type === 'mangabar_state') {
+        if (msg.mounted !== false) {
+          hideLoader();
+        }
+        const badge = document.getElementById('zoomLevelDisplay');
+        if (badge && typeof msg.zoom === 'number') {
+          const pct = Math.round(msg.zoom * 100);
+          badge.textContent = pct + '%';
+          if (pct !== 100) {
+            badge.style.color = '#38bdf8';
+            badge.style.borderColor = '#38bdf8';
+            badge.style.fontWeight = '700';
+          } else {
+            badge.style.color = '';
+            badge.style.borderColor = '';
+            badge.style.fontWeight = '600';
+          }
+        }
       }
     });
 
+    let reloadFallbackTimer = null;
+    let frameMountFallbackTimer = null;
     function reloadFrame() {
-      const iframe = document.getElementById('mangabarFrame');
-      if (iframe) {
-        try {
-          iframe.contentWindow.location.reload();
-        } catch (e) {
-          iframe.src = iframe.src;
-        }
-      } else {
-        send('reload');
+      const loader = document.getElementById('iframeLoader');
+      if (loader) {
+        loader.classList.remove('hidden');
       }
+      frameLoaded = false;
+      send('reload');
+      sendCmd('reload');
+
+      if (reloadFallbackTimer) clearTimeout(reloadFallbackTimer);
+      reloadFallbackTimer = setTimeout(() => {
+        if (!frameLoaded) {
+          const iframe = document.getElementById('mangabarFrame');
+          if (iframe) {
+            try {
+              iframe.src = iframe.src;
+            } catch (_) {}
+          }
+        }
+      }, 1200);
     }
 
-    // Hide iframe loading overlay
+    let frameLoaded = false;
     function hideLoader() {
+      frameLoaded = true;
+      if (reloadFallbackTimer) {
+        clearTimeout(reloadFallbackTimer);
+        reloadFallbackTimer = null;
+      }
+      if (frameMountFallbackTimer) {
+        clearTimeout(frameMountFallbackTimer);
+        frameMountFallbackTimer = null;
+      }
       const loader = document.getElementById('iframeLoader');
       if (loader) loader.classList.add('hidden');
     }
-    // Safety timeout — hide loader after 15s even if onload doesn't fire
-    ${state === 'RUNNING' ? `setTimeout(hideLoader, 15000);` : ''}
+
+    function onIframeLoad() {
+      // Frame finished HTML download. Only dismiss overlay once React DOM mounts or via safe 4s fallback
+      if (frameMountFallbackTimer) clearTimeout(frameMountFallbackTimer);
+      frameMountFallbackTimer = setTimeout(() => {
+        hideLoader();
+      }, 4000);
+    }
+    // Safety check — if frame doesn't load within 15s, show gentle reload/restart action card instead of a blank void
+    ${
+      state === 'RUNNING'
+        ? `setTimeout(() => {
+          if (!frameLoaded) {
+            const loader = document.getElementById('iframeLoader');
+            if (loader) {
+              loader.innerHTML = \`
+                <div style="text-align:center; padding: 24px 16px; display:flex; flex-direction:column; align-items:center; gap:12px;">
+                  <svg style="width:36px; height:36px; color:#f59e0b;" viewBox="0 0 16 16" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.71c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                  </svg>
+                  <div style="font-size:13px; font-weight:600;">Server is initializing...</div>
+                  <div style="font-size:11px; opacity:0.75; max-width:240px; line-height:1.4;">Connecting to local MangaBar engine. If the reader does not appear shortly, click Reload.</div>
+                  <div style="display:flex; gap:8px; margin-top:6px;">
+                    <button onclick="reloadFrame()" style="padding:5px 14px;">
+                      <svg class="icon-svg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
+                      <span>Reload</span>
+                    </button>
+                    <button class="secondary" onclick="send('restart')" style="padding:5px 12px;">
+                      <svg class="icon-svg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1 8a7 7 0 1 1 12.07 4.95l-.71-.71A6 6 0 1 0 2 8h2l-2.5 3L-1 8h2zm14 0a7 7 0 1 1-12.07-4.95l.71.71A6 6 0 1 0 14 8h-2l2.5-3L17 8h-2z"/></svg>
+                      <span>Restart</span>
+                    </button>
+                  </div>
+                </div>
+              \`;
+            }
+          }
+        }, 15000);`
+        : ''
+    }
 
     // Initial check on load
     ${state === 'RUNNING' ? `send('getStoreSummary');` : ''}

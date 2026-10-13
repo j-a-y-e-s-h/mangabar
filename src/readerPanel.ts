@@ -75,6 +75,15 @@ export class ReaderPanel {
               }
             );
             break;
+          case 'refresh':
+            const isHealthy = await this.serverManager.isServerHealthy(this.serverManager.getPort());
+            if (!isHealthy) {
+              this.serverManager.setOfflineState();
+              this.update();
+            } else {
+              this.panel.webview.postMessage({ type: 'reload' });
+            }
+            break;
         }
       },
       null,
@@ -209,6 +218,28 @@ export class ReaderPanel {
       flex-shrink: 0;
     }
 
+    .zoom-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 9999px;
+      background: ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'};
+      border: 1px solid ${borderColor};
+      min-width: 44px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+      color: ${textColor};
+    }
+    .zoom-pill:hover {
+      background: ${isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(0, 0, 0, 0.09)'};
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+
     /* ── Content ── */
     .content {
       flex: 1;
@@ -222,6 +253,8 @@ export class ReaderPanel {
       position: absolute;
       top: 0;
       left: 0;
+      background: ${isDark ? '#121212' : '#f5f5f5'} !important;
+      color-scheme: ${isDark ? 'dark' : 'light'} !important;
     }
 
     /* Loading skeleton */
@@ -323,14 +356,31 @@ export class ReaderPanel {
   ${isRunning ? `
   <!-- Navigation Toolbar -->
   <div class="toolbar">
-    <button class="nav-btn" id="btnBack" title="Back" onclick="goBack()">
+    <button class="nav-btn" id="btnBack" title="Back to Manga (Backspace / B / Alt+Left)" onclick="goBack()">
       <svg viewBox="0 0 16 16"><path d="M7.78 12.53a.75.75 0 0 1-1.06 0L2.47 8.28a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 1.06L4.31 7.5h8.94a.75.75 0 0 1 0 1.5H4.31l3.47 3.47a.75.75 0 0 1 0 1.06z"/></svg>
     </button>
-    <button class="nav-btn" id="btnForward" title="Forward" onclick="goForward()">
+    <button class="nav-btn" id="btnForward" title="Forward (Alt+Right)" onclick="goForward()">
       <svg viewBox="0 0 16 16"><path d="M8.22 3.47a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.69 8.5H2.75a.75.75 0 0 1 0-1.5h8.94L8.22 3.53a.75.75 0 0 1 0-1.06z"/></svg>
     </button>
-    <button class="nav-btn" id="btnRefresh" title="Refresh" onclick="refreshPage()">
+    <button class="nav-btn" id="btnHome" title="Library Home (H)" onclick="goHome()">
+      <svg viewBox="0 0 16 16"><path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 2 7.5V14a1 1 0 0 0 1 1h2.5a.5.5 0 0 0 .5-.5V11h4v3.5a.5.5 0 0 0 .5.5H13a1 1 0 0 0 1-1V7.5a.5.5 0 0 0 .354-.854l-6-6z"/></svg>
+    </button>
+    <button class="nav-btn" id="btnRefresh" title="Refresh View" onclick="refreshPage()">
       <svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
+    </button>
+
+    <div class="separator"></div>
+
+    <!-- Zoom & Scroll Controls -->
+    <button class="nav-btn" title="Zoom Out (-)" onclick="zoomOut()">
+      <svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M2 8a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 8z"/></svg>
+    </button>
+    <div class="zoom-pill" id="zoomLevelDisplay" title="Click to Reset Zoom (0)" onclick="zoomReset()">100%</div>
+    <button class="nav-btn" title="Zoom In (+)" onclick="zoomIn()">
+      <svg viewBox="0 0 16 16"><path d="M8 2a.75.75 0 0 1 .75.75v4.5h4.5a.75.75 0 0 1 0 1.5h-4.5v4.5a.75.75 0 0 1-1.5 0v-4.5h-4.5a.75.75 0 0 1 0-1.5h4.5v-4.5A.75.75 0 0 1 8 2z"/></svg>
+    </button>
+    <button class="nav-btn" title="Scroll Down (Space / ▼)" onclick="scrollDown()">
+      <svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 6.646a.5.5 0 0 1 .708 0L8 12.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/><path fill-rule="evenodd" d="M1.646 2.646a.5.5 0 0 1 .708 0L8 8.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>
     </button>
 
     <div class="separator"></div>
@@ -344,9 +394,6 @@ export class ReaderPanel {
 
     <div class="separator"></div>
 
-    <button class="nav-btn" title="Home" onclick="goHome()">
-      <svg viewBox="0 0 16 16"><path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 2 7.5V14a1 1 0 0 0 1 1h2.5a.5.5 0 0 0 .5-.5V11h4v3.5a.5.5 0 0 0 .5.5H13a1 1 0 0 0 1-1V7.5a.5.5 0 0 0 .354-.854l-6-6z"/></svg>
-    </button>
     <button class="nav-btn" title="Open in External Browser" onclick="openExternal()">
       <svg viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm6.9 7.5h-2.52a12.8 12.8 0 0 0-1.07-4.63A6.97 6.97 0 0 1 14.9 7.5zM8 1.07c.8 1.15 1.5 3.32 1.63 6.43H6.37C6.5 4.39 7.2 2.22 8 1.07zM4.69 2.87A12.8 12.8 0 0 0 3.62 7.5H1.1a6.97 6.97 0 0 1 3.59-4.63zM1.1 8.5h2.52c.2 1.68.58 3.3 1.07 4.63A6.97 6.97 0 0 1 1.1 8.5zm5.27 6.43C7.2 13.78 6.5 11.61 6.37 8.5h3.26c-.13 3.11-.83 5.28-1.63 6.43zm2.94-1.8c.49-1.33.87-2.95 1.07-4.63h2.52a6.97 6.97 0 0 1-3.59 4.63z"/></svg>
     </button>
@@ -397,41 +444,76 @@ export class ReaderPanel {
     const vscode = acquireVsCodeApi();
     const homeUrl = '${serverUrl}';
 
+    let frameMountFallbackTimer = null;
     function onFrameLoaded() {
+      if (frameMountFallbackTimer) clearTimeout(frameMountFallbackTimer);
+      frameMountFallbackTimer = setTimeout(() => {
+        dismissOverlay();
+      }, 4000);
+    }
+
+    function dismissOverlay() {
+      if (frameMountFallbackTimer) {
+        clearTimeout(frameMountFallbackTimer);
+        frameMountFallbackTimer = null;
+      }
       const overlay = document.getElementById('loadingOverlay');
       if (overlay) {
         overlay.classList.add('hidden');
-        setTimeout(() => overlay.remove(), 500);
+      }
+    }
+
+    function sendCmd(action) {
+      const frame = document.getElementById('readerFrame');
+      if (frame && frame.contentWindow) {
+        try { frame.contentWindow.postMessage({ type: 'mangabar_cmd', action }, '*'); } catch(_) {}
       }
     }
 
     function goBack() {
+      sendCmd('back');
       const frame = document.getElementById('readerFrame');
-      if (frame) {
+      if (frame && frame.contentWindow) {
         try { frame.contentWindow.history.back(); } catch(e) {}
       }
     }
 
     function goForward() {
+      sendCmd('forward');
       const frame = document.getElementById('readerFrame');
-      if (frame) {
+      if (frame && frame.contentWindow) {
         try { frame.contentWindow.history.forward(); } catch(e) {}
       }
     }
 
-    function refreshPage() {
-      const frame = document.getElementById('readerFrame');
-      if (frame) {
-        try { frame.contentWindow.location.reload(); } catch(e) { frame.src = frame.src; }
-      }
+    function goHome() {
+      sendCmd('home');
     }
 
-    function goHome() {
-      const frame = document.getElementById('readerFrame');
-      if (frame) {
-        frame.src = homeUrl;
+    let refreshFallbackTimer = null;
+    function refreshPage() {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay) {
+        overlay.classList.remove('hidden');
       }
+      sendCmd('reload');
+      vscode.postMessage({ command: 'refresh' });
+      if (refreshFallbackTimer) clearTimeout(refreshFallbackTimer);
+      refreshFallbackTimer = setTimeout(() => {
+        const frame = document.getElementById('readerFrame');
+        if (frame) {
+          try { frame.src = frame.src; } catch(e) {}
+        }
+      }, 1200);
     }
+
+    function zoomIn() { sendCmd('zoomIn'); }
+    function zoomOut() { sendCmd('zoomOut'); }
+    function zoomReset() { sendCmd('zoomReset'); }
+    function scrollDown() { sendCmd('scrollDown'); }
+    function scrollUp() { sendCmd('scrollUp'); }
+    function prevPage() { sendCmd('prevPage'); }
+    function nextPage() { sendCmd('nextPage'); }
 
     function openExternal() {
       vscode.postMessage({ command: 'openExternal' });
@@ -441,17 +523,87 @@ export class ReaderPanel {
       vscode.postMessage({ command: 'startServer' });
     }
 
-    // Handle host messages (e.g. reload)
+    // Handle host and frame messages
     window.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'reload') {
-        refreshPage();
+      if (!event.data) return;
+      if (event.data.type === 'reload') {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) overlay.classList.remove('hidden');
+        sendCmd('reload');
+      } else if (event.data.type === 'mangabar_state') {
+        if (event.data.mounted !== false) {
+          dismissOverlay();
+        }
+        if (refreshFallbackTimer) {
+          clearTimeout(refreshFallbackTimer);
+          refreshFallbackTimer = null;
+        }
+        const badge = document.getElementById('zoomLevelDisplay');
+        if (badge && typeof event.data.zoom === 'number') {
+          const pct = Math.round(event.data.zoom * 100);
+          badge.textContent = pct + '%';
+          if (pct !== 100) {
+            badge.style.color = '#38bdf8';
+            badge.style.borderColor = '#38bdf8';
+            badge.style.fontWeight = '700';
+          } else {
+            badge.style.color = '';
+            badge.style.borderColor = '';
+            badge.style.fontWeight = '600';
+          }
+        }
+        if (event.data.pathname) {
+          const display = document.getElementById('urlDisplay');
+          if (display) {
+            display.textContent = homeUrl + (event.data.pathname === '/' ? '' : event.data.pathname);
+          }
+        }
       }
     });
 
-    // Close on Escape or Ctrl+Alt+M
+    // Keyboard navigation when Reader tab webview has focus
     window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       if (e.key === 'Escape' || ((e.ctrlKey || e.metaKey) && e.altKey && (e.key === 'm' || e.key === 'M'))) {
         vscode.postMessage({ command: 'close' });
+        return;
+      }
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '=' || e.key === '+') {
+          e.preventDefault();
+          zoomIn();
+          return;
+        } else if (e.key === '-' || e.key === '_') {
+          e.preventDefault();
+          zoomOut();
+          return;
+        } else if (e.key === '0') {
+          e.preventDefault();
+          zoomReset();
+          return;
+        }
+      }
+      if (e.key === '+' || e.key === '=') {
+        zoomIn();
+      } else if (e.key === '-' || e.key === '_') {
+        zoomOut();
+      } else if (e.key === '0') {
+        zoomReset();
+      } else if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowLeft') || e.key === 'b' || e.key === 'B') {
+        e.preventDefault();
+        goBack();
+      } else if (e.key === 'h' || e.key === 'H') {
+        goHome();
+      } else if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        scrollDown();
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        scrollUp();
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        nextPage();
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        prevPage();
       }
     });
   </script>

@@ -2,10 +2,11 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
+const pkg = require('../package.json');
 const TOKEN = process.env.GITHUB_TOKEN || '';
 const OWNER = 'j-a-y-e-s-h';
 const REPO = 'mangabar';
-const TAG = 'v0.2.0';
+const TAG = `v${pkg.version}`;
 
 function request(options, data) {
   return new Promise((resolve, reject) => {
@@ -117,7 +118,7 @@ async function run() {
   }
 
   const rootDir = path.resolve(__dirname, '..');
-  const vsixPath = path.join(rootDir, 'mangabar-0.2.0.vsix');
+  const vsixPath = path.join(rootDir, `mangabar-${pkg.version}.vsix`);
   const jarPath = path.join(rootDir, 'bin', 'mangabar-server.jar');
 
   async function uploadOrReplace(filePath, contentType) {
