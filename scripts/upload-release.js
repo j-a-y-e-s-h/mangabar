@@ -93,7 +93,7 @@ async function run() {
         tag_name: TAG,
         target_commitish: 'main',
         name: `MangaBar ${TAG} — Official Release`,
-        body: `## 📖 MangaBar ${TAG}\n\nHigh-performance Manga, Manhwa & Comic reader inside your IDE (VS Code, Cursor, Windsurf, VSCodium).\n\n### 📦 Release Downloads\n- **\`mangabar-0.2.0.vsix\`**: Installable IDE Extension package\n- **\`mangabar-server.jar\`**: Core MangaBar background server engine\n`,
+        body: `## 📖 MangaBar ${TAG}\n\nHigh-performance Manga, Manhwa & Comic reader inside your IDE (VS Code, Cursor, Windsurf, VSCodium).\n\n### 📦 Release Downloads\n- **\`mangabar-${pkg.version}.vsix\`**: Installable IDE Extension package\n- **\`mangabar-server.jar\`**: Core MangaBar background server engine\n`,
         draft: false,
         prerelease: false,
       })
