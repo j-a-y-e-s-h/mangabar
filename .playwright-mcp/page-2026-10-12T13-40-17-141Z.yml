@@ -1,0 +1,22 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - generic "Click to Start" [ref=f2e3] [cursor=pointer]: Stopped
+    - generic [ref=f2e6]:
+      - button "Open Full Editor Tab Reader" [ref=f2e7] [cursor=pointer]
+      - button "Open in External Browser" [ref=f2e10] [cursor=pointer]
+      - button "Move to Right Side" [ref=f2e13] [cursor=pointer]
+      - button "Refresh" [ref=f2e16] [cursor=pointer]
+      - button "Start" [ref=f2e20] [cursor=pointer]
+  - generic [ref=f2e24]:
+    - button "📚 Library" [ref=f2e25] [cursor=pointer]
+    - button "🧭 Browse" [ref=f2e27] [cursor=pointer]
+    - button "🕒 History" [ref=f2e29] [cursor=pointer]
+    - button "⚙️ Settings" [ref=f2e31] [cursor=pointer]
+  - generic [ref=f2e33]:
+    - generic [ref=f2e34]: ⚡ Instant Mode Ready (Zero Lag)
+    - button "Wake APK Daemon" [ref=f2e35] [cursor=pointer]
+  - generic [ref=f2e37]:
+    - textbox "Search your library..." [ref=f2e41]
+    - generic [ref=f2e43]:
+      - generic [ref=f2e47]: Your library is empty
+      - button "Browse 350+ Sources" [ref=f2e48] [cursor=pointer]
