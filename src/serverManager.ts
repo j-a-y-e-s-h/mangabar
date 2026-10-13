@@ -32,6 +32,9 @@ export class ServerManager {
   private idleTimer: NodeJS.Timeout | null = null;
   private readonly idleTimeoutMs: number = 15 * 60 * 1000; // 15 minutes auto-sleep
   private watchdogTimer: NodeJS.Timeout | null = null;
+  private startingPromise: Promise<boolean> | null = null;
+  private logTailInterval: NodeJS.Timeout | null = null;
+  private logTailBytesRead: number = 0;
 
   constructor(private context: vscode.ExtensionContext, configManager?: ConfigManager) {
     this.outputChannel = vscode.window.createOutputChannel('MangaBar Server');
@@ -603,38 +606,37 @@ export class ServerManager {
   }
 
   /**
-   * Finds the PID listening on a given port on Windows/Unix.
+   * Finds the PID listening on a given port on Windows/Unix asynchronously.
    */
-  private getListeningPid(port: number): number | null {
-    try {
-      if (process.platform === 'win32') {
-        const out = child_process.execSync(`netstat -ano | findstr :${port}`, {
-          encoding: 'utf8',
-          windowsHide: true,
-        });
-        const lines = out.split('\n');
-        for (const line of lines) {
-          if (line.includes('LISTENING')) {
-            const parts = line.trim().split(/\s+/);
-            const pid = parseInt(parts[parts.length - 1], 10);
-            if (!isNaN(pid) && pid > 0) {
-              return pid;
+  private async getListeningPid(port: number): Promise<number | null> {
+    return new Promise((resolve) => {
+      try {
+        if (process.platform === 'win32') {
+          child_process.exec(`netstat -ano | findstr :${port}`, { windowsHide: true }, (err, stdout) => {
+            if (err || !stdout) return resolve(null);
+            const lines = stdout.split('\n');
+            for (const line of lines) {
+              if (line.includes('LISTENING')) {
+                const parts = line.trim().split(/\s+/);
+                const pid = parseInt(parts[parts.length - 1], 10);
+                if (!isNaN(pid) && pid > 0) {
+                  return resolve(pid);
+                }
+              }
             }
-          }
+            resolve(null);
+          });
+        } else {
+          child_process.exec(`lsof -ti :${port}`, (err, stdout) => {
+            if (err || !stdout) return resolve(null);
+            const pid = parseInt(stdout.trim(), 10);
+            resolve(!isNaN(pid) && pid > 0 ? pid : null);
+          });
         }
-      } else {
-        const out = child_process.execSync(`lsof -ti :${port}`, {
-          encoding: 'utf8',
-        });
-        const pid = parseInt(out.trim(), 10);
-        if (!isNaN(pid) && pid > 0) {
-          return pid;
-        }
+      } catch {
+        resolve(null);
       }
-    } catch {
-      // no process listening
-    }
-    return null;
+    });
   }
 
   private isPidAlive(pid: number): boolean {
@@ -647,18 +649,21 @@ export class ServerManager {
   }
 
   /**
-   * Forcefully kills a process by PID and awaits its termination.
+   * Forcefully kills a process by PID and awaits its termination asynchronously.
    */
   private async forceKillPid(pid: number): Promise<void> {
-    try {
-      if (process.platform === 'win32') {
-        child_process.execSync(`taskkill /F /T /PID ${pid}`, { windowsHide: true });
-      } else {
-        process.kill(-pid, 'SIGKILL');
+    await new Promise<void>((resolve) => {
+      try {
+        if (process.platform === 'win32') {
+          child_process.exec(`taskkill /F /T /PID ${pid}`, { windowsHide: true }, () => resolve());
+        } else {
+          process.kill(-pid, 'SIGKILL');
+          resolve();
+        }
+      } catch {
+        resolve();
       }
-    } catch {
-      // ignore if already dead
-    }
+    });
 
     const start = Date.now();
     while (Date.now() - start < 3000) {
@@ -673,10 +678,53 @@ export class ServerManager {
    * Kills any process holding the specified port and awaits clearance.
    */
   private async killProcessOnPort(port: number): Promise<void> {
-    const pid = this.getListeningPid(port);
+    const pid = await this.getListeningPid(port);
     if (pid) {
       this.outputChannel.appendLine(`[MangaBar] Terminating process (PID: ${pid}) holding port ${port}...`);
       await this.forceKillPid(pid);
+    }
+  }
+
+  /**
+   * Tails the application.log file created by Suwayomi logback so users see
+   * DB migration and server startup progress in real time in the output window.
+   */
+  private startLogTailing(dataDir: string): void {
+    this.stopLogTailing();
+    const logFile = path.join(dataDir, 'logs', 'application.log');
+    this.logTailBytesRead = 0;
+    if (fs.existsSync(logFile)) {
+      try {
+        this.logTailBytesRead = fs.statSync(logFile).size;
+      } catch {}
+    }
+
+    this.logTailInterval = setInterval(() => {
+      try {
+        if (!fs.existsSync(logFile)) return;
+        const stat = fs.statSync(logFile);
+        if (stat.size > this.logTailBytesRead) {
+          const stream = fs.createReadStream(logFile, {
+            start: this.logTailBytesRead,
+            end: stat.size,
+            encoding: 'utf8',
+          });
+          this.logTailBytesRead = stat.size;
+          stream.on('data', (chunk) => {
+            const text = this.sanitizeLogOutput(chunk.toString());
+            if (text) {
+              this.outputChannel.append(text);
+            }
+          });
+        }
+      } catch {}
+    }, 250);
+  }
+
+  private stopLogTailing(): void {
+    if (this.logTailInterval) {
+      clearInterval(this.logTailInterval);
+      this.logTailInterval = null;
     }
   }
 
@@ -730,6 +778,22 @@ export class ServerManager {
   }
 
   public async startServer(): Promise<boolean> {
+    if (this.state === 'RUNNING' && this.childProcess) {
+      return true;
+    }
+    if (this.startingPromise) {
+      this.outputChannel.appendLine('[MangaBar] Server startup already in progress. Waiting for active startup attempt...');
+      return this.startingPromise;
+    }
+    this.startingPromise = this._internalStartServer();
+    try {
+      return await this.startingPromise;
+    } finally {
+      this.startingPromise = null;
+    }
+  }
+
+  private async _internalStartServer(): Promise<boolean> {
     if (this.state === 'RUNNING' && this.childProcess) {
       return true;
     }
@@ -924,6 +988,8 @@ export class ServerManager {
         windowsHide: true,
       });
 
+      this.startLogTailing(dataDir);
+
       this.childProcess.stdout?.on('data', (data) => {
         const text = this.sanitizeLogOutput(data.toString());
         if (text) {
@@ -944,6 +1010,7 @@ export class ServerManager {
         this.outputChannel.appendLine(
           `[MangaBar] Process exited with code: ${code}, signal: ${signal}`
         );
+        this.stopLogTailing();
         processExitedEarly = true;
         exitCodeResult = code;
         this.childProcess = null;
@@ -956,6 +1023,7 @@ export class ServerManager {
 
       this.childProcess.on('error', (err) => {
         this.outputChannel.appendLine(`[MangaBar] Process spawn error: ${err.message}`);
+        this.stopLogTailing();
         this.setState('ERROR');
         vscode.window.showErrorMessage(
           `Failed to launch MangaBar Server Engine. Error: ${err.message}`
@@ -967,9 +1035,9 @@ export class ServerManager {
       return false;
     }
 
-    // Healthcheck polling with early exit detection
+    // Healthcheck polling with early exit detection (up to 90s for first-run migrations)
     const ready = await this.pollHealthcheck(
-      60000,
+      90000,
       () => processExitedEarly,
       () => exitCodeResult,
       () => lastErrorOutput
@@ -982,6 +1050,18 @@ export class ServerManager {
       this.outputChannel.appendLine(`[MangaBar] Server is READY at ${this.getServerUrl()}`);
       return true;
     } else {
+      this.outputChannel.appendLine(
+        '[MangaBar Error] Server startup failed or timed out. Force-terminating process to release database locks...'
+      );
+      this.stopLogTailing();
+      if (this.childProcess) {
+        const pid = this.childProcess.pid;
+        if (pid) {
+          await this.forceKillPid(pid);
+        }
+        this.childProcess = null;
+      }
+      await this.killProcessOnPort(this.currentPort);
       this.setState('ERROR');
       return false;
     }
@@ -1002,6 +1082,7 @@ export class ServerManager {
       `${rawUrl}/`,
     ];
 
+    let lastProgressLog = 0;
     while (Date.now() - startTime < timeoutMs) {
       // Early exit detection: don't hang if process died
       if (hasExited()) {
@@ -1010,6 +1091,12 @@ export class ServerManager {
         this.outputChannel.appendLine(`[MangaBar] Server process terminated during startup (exit code: ${code}): ${errDetails}`);
         vscode.window.showErrorMessage(`MangaBar Server failed to start (exit code ${code}): ${errDetails}`);
         return false;
+      }
+
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      if (elapsed > 0 && elapsed % 10 === 0 && Date.now() - lastProgressLog > 5000) {
+        lastProgressLog = Date.now();
+        this.outputChannel.appendLine(`[MangaBar] Engine initializing & database migrating... (${elapsed}s elapsed)`);
       }
 
       for (const url of probeUrls) {
@@ -1041,6 +1128,7 @@ export class ServerManager {
   }
 
   public async stopServer(): Promise<void> {
+    this.stopLogTailing();
     if (this.idleTimer) {
       clearTimeout(this.idleTimer);
       this.idleTimer = null;

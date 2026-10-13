@@ -91,26 +91,34 @@ export function isServerJarInstalled(extensionRoot: string, workspaceRoot?: stri
   return stat.size > 150 * 1024 * 1024;
 }
 
+const shortPathCache = new Map<string, string>();
+
 /**
  * On Windows, paths containing spaces can break ClassGraph inside fat JARs.
  * Converting to an 8.3 short path resolves this reliably.
+ * Cached in-memory to prevent repeated synchronous PowerShell process launches.
  */
 export function toSafePath(targetPath: string): string {
   if (process.platform !== 'win32' || !targetPath.includes(' ') || !fs.existsSync(targetPath)) {
     return targetPath;
+  }
+  if (shortPathCache.has(targetPath)) {
+    return shortPathCache.get(targetPath)!;
   }
   try {
     const isDir = fs.statSync(targetPath).isDirectory();
     const comMethod = isDir ? 'GetFolder' : 'GetFile';
     const escaped = targetPath.replace(/'/g, "''");
     const cmd = `powershell -NoProfile -Command "(New-Object -ComObject Scripting.FileSystemObject).${comMethod}('${escaped}').ShortPath"`;
-    const shortPath = child_process.execSync(cmd, { windowsHide: true }).toString().trim();
+    const shortPath = child_process.execSync(cmd, { windowsHide: true, timeout: 3000 }).toString().trim();
     if (shortPath && fs.existsSync(shortPath)) {
+      shortPathCache.set(targetPath, shortPath);
       return shortPath;
     }
   } catch {
     // fallback to original path
   }
+  shortPathCache.set(targetPath, targetPath);
   return targetPath;
 }
 
