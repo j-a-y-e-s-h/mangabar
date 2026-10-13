@@ -4,6 +4,9 @@
  * Provides:
  * 1. Deep brand scrubbing and clean navigation back to Manga details.
  * 2. Safe clamped Ctrl-zoom (0.5x - 4.0x) with drag-to-pan, auto-reset, and zero IDE zoom leakage.
+ * 3. Floating "Back to Manga" button with idle fade.
+ * 4. Comprehensive keyboard shortcuts (Arrow keys, Space, Backspace, b, +, -, 0, h).
+ * 5. Full host postMessage bridge for toolbar Back, Forward, Zoom, and Scroll controls.
  */
 
 export function getReaderEnhancerScript(): string {
@@ -22,17 +25,34 @@ export function getReaderEnhancerScript(): string {
   let startDragY = 0;
   let hudTimeout = null;
   let lastPathname = window.location.pathname;
+  let floatingExitBtn = null;
+  let idleTimer = null;
 
-  // Reader route matcher: /manga/:id/chapter/:order
-  const READER_ROUTE_REGEX = /\\/manga\\/([^\\/]+)\\/chapter\\/([^\\/]+)/;
+  function getPathAndHash() {
+    return window.location.pathname + (window.location.hash || '');
+  }
 
   function isReaderView() {
-    return READER_ROUTE_REGEX.test(window.location.pathname);
+    return new RegExp('/manga/[^/]+/chapter/[^/]+', 'i').test(getPathAndHash());
   }
 
   function getMangaId() {
-    const match = window.location.pathname.match(READER_ROUTE_REGEX);
+    const match = getPathAndHash().match(new RegExp('/manga/([^/]+)/chapter/([^/]+)', 'i'));
     return match ? match[1] : null;
+  }
+
+  function navigateTo(targetPath) {
+    resetZoom();
+    if (window.location.hash && window.location.hash.startsWith('#/')) {
+      window.location.hash = '#' + targetPath;
+      return;
+    }
+    if (window.history && window.history.pushState) {
+      window.history.pushState(null, '', targetPath);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    } else {
+      window.location.href = targetPath;
+    }
   }
 
   /* ──────────────────────────────────────────────────────────
@@ -50,7 +70,7 @@ export function getReaderEnhancerScript(): string {
       .replace(/Mihon/gi, 'MangaBar');
   }
 
-  // Intercept document.title property setter directly to ensure SPA routers cannot set Suwayomi title
+  // Intercept document.title property setter directly
   try {
     const titleDescriptor =
       Object.getOwnPropertyDescriptor(Document.prototype, 'title') ||
@@ -163,18 +183,89 @@ export function getReaderEnhancerScript(): string {
   }
 
   /* ──────────────────────────────────────────────────────────
-   * 1. READER MENU CLOSE & CLEANUP
-   * Ensure any lingering floating exit button is removed.
-   * Provide closeReaderMenu() so clicking the 'X' button or hotkey
-   * closes the menu drawer and returns to reading the current chapter.
+   * 1. FLOATING "BACK TO MANGA" QUICK NAVIGATION BUTTON
    * ────────────────────────────────────────────────────────── */
-  function cleanupLingeringFloatingButtons() {
-    const lingering = document.getElementById('mangabar-floating-exit-btn');
-    if (lingering) {
-      lingering.remove();
+  function ensureFloatingExitButton() {
+    if (!isReaderView()) {
+      if (floatingExitBtn) {
+        floatingExitBtn.remove();
+        floatingExitBtn = null;
+      }
+      return;
+    }
+
+    if (!floatingExitBtn || !document.body.contains(floatingExitBtn)) {
+      floatingExitBtn = document.createElement('button');
+      floatingExitBtn.id = 'mangabar-floating-exit-btn';
+      floatingExitBtn.innerHTML =
+        '<svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">' +
+        '<path d="M7.78 12.53a.75.75 0 0 1-1.06 0L2.47 8.28a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 1.06L4.31 7.5h8.94a.75.75 0 0 1 0 1.5H4.31l3.47 3.47a.75.75 0 0 1 0 1.06z"/>' +
+        '</svg>' +
+        '<span>Back to Manga</span>';
+      Object.assign(floatingExitBtn.style, {
+        position: 'fixed',
+        top: '12px',
+        left: '12px',
+        padding: '5px 12px',
+        borderRadius: '20px',
+        backgroundColor: 'rgba(20, 20, 25, 0.82)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.22)',
+        color: '#ffffff',
+        fontSize: '11px',
+        fontWeight: '600',
+        cursor: 'pointer',
+        zIndex: '99998',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+        transition: 'opacity 0.25s ease, transform 0.2s ease, background-color 0.2s ease',
+        userSelect: 'none',
+        opacity: '0.85',
+      });
+
+      floatingExitBtn.addEventListener('mouseenter', () => {
+        floatingExitBtn.style.opacity = '1';
+        floatingExitBtn.style.transform = 'scale(1.04)';
+        floatingExitBtn.style.backgroundColor = 'rgba(0, 122, 204, 0.9)';
+      });
+      floatingExitBtn.addEventListener('mouseleave', () => {
+        floatingExitBtn.style.transform = 'scale(1)';
+        floatingExitBtn.style.backgroundColor = 'rgba(20, 20, 25, 0.82)';
+        resetIdleTimer();
+      });
+
+      floatingExitBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const mangaId = getMangaId();
+        if (mangaId) {
+          navigateTo('/manga/' + mangaId);
+        } else {
+          window.history.back();
+        }
+      };
+
+      document.body.appendChild(floatingExitBtn);
+      resetIdleTimer();
     }
   }
-  cleanupLingeringFloatingButtons();
+
+  function resetIdleTimer() {
+    if (!floatingExitBtn) return;
+    floatingExitBtn.style.opacity = '0.85';
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (floatingExitBtn && !floatingExitBtn.matches(':hover')) {
+        floatingExitBtn.style.opacity = '0.15';
+      }
+    }, 3000);
+  }
+
+  window.addEventListener('mousemove', resetIdleTimer, { passive: true });
+  window.addEventListener('touchstart', resetIdleTimer, { passive: true });
 
   function closeReaderMenu() {
     try {
@@ -196,7 +287,6 @@ export function getReaderEnhancerScript(): string {
       }
     } catch (_) {}
     try {
-      // Find the Pin / Static navigation button in the reader drawer if it's currently pinned, and click it to unpin
       const drawer = document.querySelector('[class*="MuiDrawer-root"], [role="presentation"]');
       if (drawer) {
         const pinButtons = drawer.querySelectorAll('button');
@@ -237,13 +327,6 @@ export function getReaderEnhancerScript(): string {
     false
   );
 
-  // Close reader menu on Escape key
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isReaderView()) {
-      closeReaderMenu();
-    }
-  });
-
   /* ──────────────────────────────────────────────────────────
    * 2. SAFE CLAMPED CTRL-ZOOM (50% - 400%) & PAN
    * ────────────────────────────────────────────────────────── */
@@ -251,27 +334,23 @@ export function getReaderEnhancerScript(): string {
   const MAX_ZOOM = 4.0;
   const ZOOM_STEP = 0.15;
 
-  function findReaderContainer() {
-    // Reader image container
-    return (
-      document.querySelector('[class*="reader"], [class*="Reader"], [class*="pager"], main, #root > div') ||
-      document.body
-    );
-  }
-
   function getReaderTarget() {
-    // Target the canvas or reader container that holds manga page images
-    const img = document.querySelector('img[src*="/api/v1/manga/"], img[src*="/chapter/"], [class*="reader"] img, canvas');
-    if (img) {
-      // Find the page/scroll container
-      const container = img.closest('[class*="page"], [class*="Page"], [class*="readerContainer"], [class*="viewer"]') || img.parentElement;
-      return container || img;
+    const canvas = document.querySelector('canvas, img[src*="/api/v1/manga/"], img[src*="/chapter/"]');
+    if (canvas) {
+      const viewer = canvas.closest('[class*="viewer"], [class*="Viewer"], [class*="reader"], [class*="Reader"], [tabindex="0"]') ||
+                     canvas.parentElement?.parentElement ||
+                     canvas.parentElement;
+      if (viewer && viewer !== document.body && viewer !== document.documentElement) {
+        return viewer;
+      }
+      return canvas;
     }
-    return document.querySelector('[class*="reader"], main') || document.body;
+    const main = document.querySelector('main, [role="main"], [class*="reader"]');
+    if (main && main !== document.body) return main;
+    return document.body;
   }
 
-  function applyZoom(newScale, centerPointerX, centerPointerY) {
-    const prevScale = currentZoom;
+  function applyZoom(newScale) {
     currentZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(newScale * 100) / 100));
 
     if (currentZoom === 1.0) {
@@ -286,14 +365,15 @@ export function getReaderEnhancerScript(): string {
         target.style.transformOrigin = '';
         target.style.cursor = '';
       } else {
-        target.style.transformOrigin = 'center center';
-        target.style.transform = \`translate(\${panX}px, \${panY}px) scale(\${currentZoom})\`;
+        target.style.transformOrigin = 'center 15%';
+        target.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + currentZoom + ')';
         target.style.transition = isDragging ? 'none' : 'transform 0.12s ease-out';
         target.style.cursor = currentZoom > 1.0 ? (isDragging ? 'grabbing' : 'grab') : '';
       }
     }
 
     showZoomHud();
+    broadcastState();
   }
 
   function resetZoom() {
@@ -307,6 +387,7 @@ export function getReaderEnhancerScript(): string {
       target.style.cursor = '';
     }
     hideZoomHud();
+    broadcastState();
   }
 
   // Ctrl + Wheel Zoom
@@ -314,7 +395,6 @@ export function getReaderEnhancerScript(): string {
     if (!isReaderView()) return;
 
     if (e.ctrlKey || e.metaKey) {
-      // CRITICAL: Stop Chromium / VS Code outer window from zooming!
       e.preventDefault();
       e.stopImmediatePropagation();
 
@@ -323,33 +403,11 @@ export function getReaderEnhancerScript(): string {
     }
   }, { passive: false, capture: true });
 
-  // Ctrl Keyboard Shortcuts: Ctrl+/-, Ctrl+0
-  window.addEventListener('keydown', (e) => {
-    if (!isReaderView()) return;
-
-    if (e.ctrlKey || e.metaKey) {
-      if (e.key === '=' || e.key === '+') {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        applyZoom(currentZoom + 0.25);
-      } else if (e.key === '-' || e.key === '_') {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        applyZoom(currentZoom - 0.25);
-      } else if (e.key === '0') {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        resetZoom();
-      }
-    }
-  }, true);
-
   // Drag-to-pan when zoomed in (> 1.0x)
   window.addEventListener('mousedown', (e) => {
     if (!isReaderView() || currentZoom <= 1.0) return;
-    if (e.button !== 0) return; // Only primary mouse button
+    if (e.button !== 0) return;
 
-    // Do not drag if clicking buttons or controls
     if (e.target.closest('button, [role="button"], input, a, header, [class*="MuiAppBar"]')) return;
 
     isDragging = true;
@@ -367,7 +425,6 @@ export function getReaderEnhancerScript(): string {
     panX = e.clientX - startDragX;
     panY = e.clientY - startDragY;
 
-    // Keep panning within bounds
     const maxPan = window.innerWidth * (currentZoom - 1.0);
     panX = Math.max(-maxPan, Math.min(maxPan, panX));
     panY = Math.max(-window.innerHeight * currentZoom, Math.min(window.innerHeight * currentZoom, panY));
@@ -375,7 +432,7 @@ export function getReaderEnhancerScript(): string {
     const target = getReaderTarget();
     if (target && target !== document.body) {
       target.style.transition = 'none';
-      target.style.transform = \`translate(\${panX}px, \${panY}px) scale(\${currentZoom})\`;
+      target.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + currentZoom + ')';
     }
   }, true);
 
@@ -393,7 +450,7 @@ export function getReaderEnhancerScript(): string {
   window.addEventListener('mouseleave', stopDragging, true);
 
   /* ──────────────────────────────────────────────────────────
-   * 4. TRANSIENT ZOOM HUD
+   * 3. TRANSIENT ZOOM HUD
    * ────────────────────────────────────────────────────────── */
   let hudEl = null;
 
@@ -407,7 +464,7 @@ export function getReaderEnhancerScript(): string {
         right: '14px',
         padding: '5px 12px',
         borderRadius: '20px',
-        backgroundColor: 'rgba(20, 20, 24, 0.78)',
+        backgroundColor: 'rgba(20, 20, 24, 0.82)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -426,10 +483,9 @@ export function getReaderEnhancerScript(): string {
     }
 
     const pct = Math.round(currentZoom * 100);
-    hudEl.innerHTML = \`
-      <span>\${pct}%</span>
-      \${currentZoom !== 1.0 ? '<span id="mangabar-hud-reset" style="cursor:pointer; opacity:0.75; text-decoration:underline; font-size:10px;">Reset</span>' : ''}
-    \`;
+    hudEl.innerHTML =
+      '<span>' + pct + '%</span>' +
+      (currentZoom !== 1.0 ? '<span id="mangabar-hud-reset" style="cursor:pointer; opacity:0.8; text-decoration:underline; font-size:10px;">Reset</span>' : '');
 
     const resetBtn = document.getElementById('mangabar-hud-reset');
     if (resetBtn) {
@@ -458,9 +514,183 @@ export function getReaderEnhancerScript(): string {
     }
   }
 
+  function doScroll(amount) {
+    const scroller = document.querySelector('[class*="scroll"], main, [class*="reader"], [role="main"]') || window;
+    try {
+      if (scroller && typeof scroller.scrollBy === 'function') {
+        scroller.scrollBy({ top: amount, behavior: 'smooth' });
+      } else {
+        window.scrollBy({ top: amount, behavior: 'smooth' });
+      }
+    } catch (_) {
+      window.scrollBy(0, amount);
+    }
+  }
+
+  function doNextPage() {
+    try {
+      const store = window.__MANGABAR_READER_STORE__ && window.__MANGABAR_READER_STORE__.getState && window.__MANGABAR_READER_STORE__.getState();
+      if (store && store.pages) {
+        const curr = store.pages.currentPageIndex;
+        const total = store.pages.totalPages;
+        if (typeof curr === 'number' && typeof total === 'number' && curr < total - 1) {
+          if (typeof store.pages.setCurrentPageIndex === 'function') store.pages.setCurrentPageIndex(curr + 1);
+          if (typeof store.pages.setPageToScrollToIndex === 'function') store.pages.setPageToScrollToIndex(curr + 1);
+          return;
+        }
+      }
+    } catch (_) {}
+    doScroll(window.innerHeight * 0.82);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', code: 'ArrowRight', bubbles: true }));
+  }
+
+  function doPrevPage() {
+    try {
+      const store = window.__MANGABAR_READER_STORE__ && window.__MANGABAR_READER_STORE__.getState && window.__MANGABAR_READER_STORE__.getState();
+      if (store && store.pages) {
+        const curr = store.pages.currentPageIndex;
+        if (typeof curr === 'number' && curr > 0) {
+          if (typeof store.pages.setCurrentPageIndex === 'function') store.pages.setCurrentPageIndex(curr - 1);
+          if (typeof store.pages.setPageToScrollToIndex === 'function') store.pages.setPageToScrollToIndex(curr - 1);
+          return;
+        }
+      }
+    } catch (_) {}
+    doScroll(-window.innerHeight * 0.82);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', code: 'ArrowLeft', bubbles: true }));
+  }
+
   /* ──────────────────────────────────────────────────────────
-   * 5. ROUTE CHANGE & MUTATION OBSERVER
-   * Auto-resets zoom on page changes and synchronizes floating button.
+   * 4. KEYBOARD SHORTCUTS IN READER
+   * ────────────────────────────────────────────────────────── */
+  window.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        applyZoom(currentZoom + 0.25);
+        return;
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        applyZoom(currentZoom - 0.25);
+        return;
+      } else if (e.key === '0') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        resetZoom();
+        return;
+      }
+    }
+
+    if (e.key === '+' || e.key === '=') {
+      applyZoom(currentZoom + 0.25);
+    } else if (e.key === '-' || e.key === '_') {
+      applyZoom(currentZoom - 0.25);
+    } else if (e.key === '0') {
+      resetZoom();
+    } else if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowLeft') || e.key === 'b' || e.key === 'B') {
+      if (isReaderView()) {
+        e.preventDefault();
+        const mangaId = getMangaId();
+        if (mangaId) {
+          navigateTo('/manga/' + mangaId);
+        } else {
+          window.history.back();
+        }
+      }
+    } else if (e.key === 'h' || e.key === 'H') {
+      navigateTo('/');
+    } else if (e.key === 'Escape') {
+      if (isReaderView()) {
+        closeReaderMenu();
+        if (currentZoom !== 1.0) resetZoom();
+      }
+    } else if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      doScroll(380);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault();
+      doScroll(-380);
+    } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+      if (isReaderView()) doNextPage();
+    } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+      if (isReaderView()) doPrevPage();
+    }
+  }, true);
+
+  /* ──────────────────────────────────────────────────────────
+   * 5. POSTMESSAGE BRIDGE WITH HOST TOOLBAR
+   * ────────────────────────────────────────────────────────── */
+  window.addEventListener('message', (e) => {
+    if (!e.data || e.data.type !== 'mangabar_cmd') return;
+    switch (e.data.action) {
+      case 'reload':
+        try {
+          window.location.reload();
+        } catch (_) {}
+        break;
+      case 'back':
+        const mangaId = getMangaId();
+        if (isReaderView() && mangaId) {
+          navigateTo('/manga/' + mangaId);
+        } else {
+          window.history.back();
+        }
+        break;
+      case 'forward':
+        window.history.forward();
+        break;
+      case 'home':
+        navigateTo('/');
+        break;
+      case 'zoomIn':
+        applyZoom(currentZoom + 0.25);
+        break;
+      case 'zoomOut':
+        applyZoom(currentZoom - 0.25);
+        break;
+      case 'zoomReset':
+        resetZoom();
+        break;
+      case 'scrollUp':
+        doScroll(-380);
+        break;
+      case 'scrollDown':
+        doScroll(380);
+        break;
+      case 'prevPage':
+        doPrevPage();
+        break;
+      case 'nextPage':
+        doNextPage();
+        break;
+    }
+  });
+
+  function isMounted() {
+    const root = document.getElementById('root');
+    return !!(root && root.children && root.children.length > 0);
+  }
+
+  function broadcastState() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'mangabar_state',
+          zoom: currentZoom,
+          isReader: isReaderView(),
+          pathname: window.location.pathname,
+          mounted: isMounted()
+        }, '*');
+      }
+    } catch (_) {}
+  }
+
+  /* ──────────────────────────────────────────────────────────
+   * 6. ROUTE CHANGE & MUTATION OBSERVER
    * ────────────────────────────────────────────────────────── */
   function checkState() {
     scrubDOMBranding();
@@ -468,10 +698,10 @@ export function getReaderEnhancerScript(): string {
       lastPathname = window.location.pathname;
       resetZoom();
     }
-    cleanupLingeringFloatingButtons();
+    ensureFloatingExitButton();
+    broadcastState();
   }
 
-  // Hook into browser history state transitions
   const origPushState = window.history.pushState;
   window.history.pushState = function () {
     const res = origPushState.apply(this, arguments);
@@ -488,14 +718,13 @@ export function getReaderEnhancerScript(): string {
 
   window.addEventListener('popstate', checkState);
 
-  // Periodic and DOM Mutation check
   const observer = new MutationObserver(() => {
     scrubDOMBranding();
     checkState();
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  setInterval(checkState, 600);
+  setInterval(checkState, 700);
   checkState();
 })();
 `;

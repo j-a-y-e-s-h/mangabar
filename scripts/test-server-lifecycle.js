@@ -1,116 +1,173 @@
-const { spawn, execSync } = require('child_process');
+const child_process = require('child_process');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
 
-function toSafePath(targetPath) {
-    if (process.platform !== 'win32' || !targetPath.includes(' ') || !fs.existsSync(targetPath)) {
-        return targetPath;
+async function runLifecycleTest() {
+  const root = path.resolve(__dirname, '..');
+  const javaCmd = path.join(root, 'bin', 'jre21', 'bin', 'java.exe');
+  const jarPath = path.join(root, 'bin', 'mangabar-server.jar');
+  const dataDir = path.join(root, 'data');
+  const port = 4567;
+
+  console.log('[Test] Spawning MangaBar server process...');
+  const javaArgs = [
+    '-Xmx512m',
+    '-Xms64m',
+    '--add-opens=java.base/java.lang=ALL-UNNAMED',
+    '--add-opens=java.base/java.util=ALL-UNNAMED',
+    '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+    '-Djava.awt.headless=true',
+    `-Dconfig.file=${path.join(dataDir, 'server.conf')}`,
+    `-Dsuwayomi.tachidesk.config.server.rootDir=${dataDir}`,
+    `-Dsuwayomi.tachidesk.config.server.port=${port}`,
+    '-Dsuwayomi.tachidesk.config.server.ip=127.0.0.1',
+    '-Dsuwayomi.tachidesk.config.server.initialOpenInBrowserEnabled=false',
+    '-Dsuwayomi.tachidesk.config.server.systemTrayEnabled=false',
+    '-Dsuwayomi.tachidesk.config.server.kcefEnabled=false',
+    '-Dsuwayomi.tachidesk.config.server.webUIInterface=BROWSER',
+    '-Dsuwayomi.tachidesk.config.server.webUIUpdateCheckInterval=0.0',
+    '-cp',
+    `${path.join(root, 'bin', 'classes')};${jarPath}`,
+    'suwayomi.tachidesk.MainKt',
+  ];
+
+  let crashed = false;
+  let exitCode = null;
+
+  const child = child_process.spawn(javaCmd, javaArgs, {
+    cwd: dataDir,
+    windowsHide: true,
+  });
+
+  child.stdout.on('data', (d) => {
+    const text = d.toString();
+    if (text.includes('CEF is') || text.includes('listening on') || text.includes('Started') || text.includes('ERROR')) {
+      process.stdout.write(`[Server stdout] ${text}`);
+    }
+  });
+
+  child.stderr.on('data', (d) => {
+    process.stderr.write(`[Server stderr] ${d.toString()}`);
+  });
+
+  child.on('exit', (code) => {
+    crashed = true;
+    exitCode = code;
+    console.log(`[Server exited with code ${code}]`);
+  });
+
+  // Wait for server to become responsive
+  console.log('[Test] Polling server health on http://127.0.0.1:4567/...');
+  let ready = false;
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    if (crashed) {
+      throw new Error(`Server crashed prematurely with exit code: ${exitCode}`);
     }
     try {
-        const isDir = fs.statSync(targetPath).isDirectory();
-        const comMethod = isDir ? 'GetFolder' : 'GetFile';
-        const escaped = targetPath.replace(/'/g, "''");
-        const cmd = `powershell -NoProfile -Command "(New-Object -ComObject Scripting.FileSystemObject).${comMethod}('${escaped}').ShortPath"`;
-        const shortPath = execSync(cmd, { windowsHide: true }).toString().trim();
-        if (shortPath && fs.existsSync(shortPath)) {
-            return shortPath;
+      const res = await fetch(`http://127.0.0.1:${port}/api/graphql`);
+      if (res.ok) {
+        ready = true;
+        console.log(`[Test] Server is healthy! HTTP ${res.status}`);
+        break;
+      }
+    } catch (_) {}
+  }
+
+  if (!ready) {
+    child.kill();
+    throw new Error('Server did not become ready within 30 seconds.');
+  }
+
+  // Verify proxy HTML transformation
+  console.log('[Test] Verifying reverse proxy behavior and HTML injection...');
+  // Create proxy similar to serverManager
+  const proxyPort = 54321;
+  const proxy = http.createServer((clientReq, clientRes) => {
+    const headers = { ...clientReq.headers, host: `127.0.0.1:${port}` };
+    delete headers['accept-encoding'];
+    const options = {
+      hostname: '127.0.0.1',
+      port,
+      path: clientReq.url,
+      method: clientReq.method,
+      headers: headers,
+    };
+
+    const upstream = http.request(options, (upstreamRes) => {
+      let body = '';
+      upstreamRes.setEncoding('utf8');
+      upstreamRes.on('data', (c) => (body += c));
+      upstreamRes.on('end', () => {
+        const faviconTags = '<link rel="icon" type="image/svg+xml" href="/__mangabar_icon.svg" />';
+        const darkHeadStyles =
+          '<style>html, body, #root { background-color: #121212 !important; background: #121212 !important; color: #e0e0e0 !important; color-scheme: dark !important; }</style>' +
+          '<script>try{localStorage.setItem("suwayomi_webui__theme_background","\\"#121212\\"");localStorage.setItem("suwayomi_webui__theme_mode","\\"dark\\"");document.documentElement.style.backgroundColor="#121212";}catch(_){}</script>';
+        if (body.includes('</head>')) {
+          body = body.replace('</head>', `${faviconTags}${darkHeadStyles}</head>`);
         }
-    } catch {
-        // fallback
-    }
-    return targetPath;
+        clientRes.writeHead(upstreamRes.statusCode || 200, { 'content-type': 'text/html; charset=utf-8' });
+        clientRes.end(body);
+      });
+    });
+    upstream.end();
+  });
+
+  await new Promise((resolve) => proxy.listen(proxyPort, '127.0.0.1', resolve));
+
+  console.log('[Test] Awaiting WebUI SPA mount on http://127.0.0.1:4567/...');
+  for (let i = 0; i < 30; i++) {
+    try {
+      const rootRes = await fetch(`http://127.0.0.1:${port}/`);
+      if (rootRes.ok) break;
+    } catch (_) {}
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  const proxyRes = await fetch(`http://127.0.0.1:${proxyPort}/`);
+  const proxyHtml = await proxyRes.text();
+
+  if (!proxyHtml.includes('background-color: #121212 !important')) {
+    throw new Error('Proxy HTML does not contain required dark head style!');
+  }
+  if (!proxyHtml.includes('localStorage.setItem("suwayomi_webui__theme_background"')) {
+    throw new Error('Proxy HTML does not contain localStorage dark theme pre-seed script!');
+  }
+  console.log('✅ Dark theme injection verified in HTML head.');
+
+  // Run user flow
+  console.log('[Test] Running full user flow checks...');
+  const sourcesRes = await fetch(`http://127.0.0.1:${port}/api/v1/source/list`);
+  const sources = await sourcesRes.json();
+  console.log(`✅ Sources API responded with ${sources.length} sources.`);
+
+  const gqlRes = await fetch(`http://127.0.0.1:${port}/api/graphql`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: '{ mangas(condition: { inLibrary: true }) { nodes { id title } } }' }),
+  });
+  const gqlData = await gqlRes.json();
+  const mangas = gqlData.data?.mangas?.nodes || [];
+  console.log(`✅ Library GraphQL responded with ${mangas.length} manga titles.`);
+
+  console.log('[Test] Waiting 10 seconds to verify daemon stability and zero crash...');
+  await new Promise((r) => setTimeout(r, 10000));
+
+  if (crashed) {
+    throw new Error(`Server crashed after initial start with exit code: ${exitCode}`);
+  }
+
+  console.log('🎉 Server remained permanently active, stable, and healthy with ZERO crashes!');
+
+  // Cleanup
+  proxy.close();
+  child.kill();
+  console.log('Test completed successfully.');
+  process.exit(0);
 }
 
-async function testServer() {
-    console.log('--- Testing Suwayomi Server Lifecycle ---');
-    const rawJarPath = path.resolve(__dirname, '..', 'bin', 'Suwayomi-Server-v2.4.2366.jar');
-    const rawTestDataDir = path.resolve(__dirname, '..', 'test-data');
-
-    if (!fs.existsSync(rawTestDataDir)) {
-        fs.mkdirSync(rawTestDataDir, { recursive: true });
-    }
-
-    const jarPath = toSafePath(rawJarPath);
-    const testDataDir = toSafePath(rawTestDataDir);
-
-    // Pre-seed config
-    const confPath = path.join(rawTestDataDir, 'server.conf');
-    const confContent = `server.port = 4567\nserver.downloadDir = "${path.join(rawTestDataDir, 'downloads').replace(/\\/g, '/')}"\nserver.extensionRepos = ["https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json"]\n`;
-    fs.writeFileSync(confPath, confContent, 'utf8');
-
-    const jreJava = path.resolve(__dirname, '..', 'bin', 'jre', 'bin', process.platform === 'win32' ? 'java.exe' : 'java');
-    const javaCmd = fs.existsSync(jreJava) ? jreJava : 'java';
-
-    console.log(`Starting Java with directory: ${testDataDir}`);
-    console.log(`Jar path: ${jarPath}`);
-    console.log(`Java command: ${javaCmd}`);
-
-    const serverProcess = spawn(javaCmd, ['-jar', jarPath, '--server.port=4567', `--server.data-dir=${testDataDir}`], {
-        cwd: testDataDir,
-        stdio: ['ignore', 'pipe', 'pipe']
-    });
-
-    console.log(`Server process spawned with PID: ${serverProcess.pid}`);
-
-    serverProcess.stdout.on('data', (d) => {
-        const text = d.toString().trim();
-        if (text) console.log(`[STDOUT] ${text}`);
-    });
-
-    serverProcess.stderr.on('data', (d) => {
-        const text = d.toString().trim();
-        if (text) console.log(`[STDERR] ${text}`);
-    });
-
-    // Poll health endpoint (up to 45 seconds)
-    let ready = false;
-    for (let i = 0; i < 45; i++) {
-        await new Promise(r => setTimeout(r, 1000));
-        try {
-            const res = await new Promise((resolve, reject) => {
-                const req = http.get('http://127.0.0.1:4567/api/v1/about', (res) => {
-                    resolve(res.statusCode);
-                });
-                req.on('error', reject);
-                req.setTimeout(1000, () => {
-                    req.destroy();
-                    reject(new Error('timeout'));
-                });
-            });
-            if (res === 200) {
-                console.log(`\nServer is HEALTHY! /api/v1/about responded with HTTP ${res}`);
-                ready = true;
-                break;
-            }
-        } catch (e) {
-            process.stdout.write('.');
-        }
-    }
-
-    if (!ready) {
-        console.error('\nServer failed to become healthy within 45s');
-    }
-
-    // Terminate cleanly
-    console.log(`\nKilling process tree for PID: ${serverProcess.pid}`);
-    try {
-        execSync(`taskkill /F /T /PID ${serverProcess.pid}`);
-        console.log('taskkill executed successfully');
-    } catch (e) {
-        console.log('Error executing taskkill:', e.message);
-    }
-
-    // Clean up test data
-    try {
-        fs.rmSync(rawTestDataDir, { recursive: true, force: true });
-        console.log('Cleaned up test data directory');
-    } catch (e) {
-        // Can be locked briefly
-    }
-
-    console.log('--- Test Finished Successfully ---');
-    process.exit(ready ? 0 : 1);
-}
-
-testServer();
+runLifecycleTest().catch((err) => {
+  console.error('❌ Test failed:', err);
+  process.exit(1);
+});

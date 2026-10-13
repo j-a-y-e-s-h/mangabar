@@ -11,3 +11,5 @@ scratch/
 # Internal notes & planning (keep private)
 docs/brainstorms/
 docs/plans/
+.playwright-mcp/
+META-INF/

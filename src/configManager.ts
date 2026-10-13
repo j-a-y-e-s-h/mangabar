@@ -70,8 +70,22 @@ export class ConfigManager {
 
   public getCustomServerUrl(): string | undefined {
     const config = this.getConfig();
-    const url = (config.get<string>('customServerUrl', '')).trim();
-    return url.length > 0 ? url : undefined;
+    const rawUrl = (config.get<string>('customServerUrl', '')).trim();
+    if (!rawUrl) {
+      return undefined;
+    }
+    const localPort = this.getConfiguredPort();
+    try {
+      const parsed = new URL(rawUrl);
+      const host = parsed.hostname.toLowerCase();
+      const port = parsed.port ? parseInt(parsed.port, 10) : (parsed.protocol === 'https:' ? 443 : 80);
+      if ((host === '127.0.0.1' || host === 'localhost' || host === '::1') && port === localPort) {
+        return undefined;
+      }
+    } catch {
+      return undefined;
+    }
+    return rawUrl;
   }
 
   public async setCustomServerUrl(url: string): Promise<void> {
@@ -160,6 +174,9 @@ export class ConfigManager {
       'server.ip': '"127.0.0.1"',
       'server.initialOpenInBrowserEnabled': 'false',
       'server.systemTrayEnabled': 'false',
+      'server.kcefEnabled': 'false',
+      'server.webUIInterface': '"BROWSER"',
+      'server.webUIUpdateCheckInterval': '0.0',
       'server.downloadsPath': `"${safeDownloadDir}"`,
       'server.extensionStores': `["${repoUrl}"]`,
     };
@@ -167,18 +184,54 @@ export class ConfigManager {
     const newLines: string[] = [];
     const seenKeys = new Set<string>();
 
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       const trimmed = line.trim();
       let handled = false;
+
       for (const key of Object.keys(keysToSet)) {
         if (trimmed.startsWith(`${key} =`) || trimmed.startsWith(`${key}=`)) {
           newLines.push(`${key} = ${keysToSet[key]}`);
           seenKeys.add(key);
           handled = true;
+
+          const opensArray = trimmed.includes('[') && !trimmed.includes(']');
+          const opensObject = trimmed.includes('{') && !trimmed.includes('}');
+
+          if (key === 'server.extensionStores') {
+            // Consume any dangling multi-line array URLs or closing brackets from previous rewrites
+            while (i + 1 < lines.length) {
+              const nextTrimmed = lines[i + 1].trim();
+              if (nextTrimmed.startsWith('"') || nextTrimmed.startsWith('http') || nextTrimmed.startsWith(']') || nextTrimmed === ']') {
+                i++;
+                if (nextTrimmed.includes(']')) {
+                  break;
+                }
+              } else {
+                break;
+              }
+            }
+          } else if (opensArray) {
+            while (i + 1 < lines.length) {
+              i++;
+              if (lines[i].includes(']')) break;
+            }
+          } else if (opensObject) {
+            while (i + 1 < lines.length) {
+              i++;
+              if (lines[i].includes('}')) break;
+            }
+          }
+
           break;
         }
       }
+
       if (!handled) {
+        // Also discard any orphaned dangling array closing bracket from extensionStores
+        if (trimmed.includes('List of extension store index URLs') && trimmed.startsWith(']')) {
+          continue;
+        }
         newLines.push(line);
       }
     }
@@ -193,6 +246,39 @@ export class ConfigManager {
       fs.writeFileSync(confPath, newLines.join('\n'), 'utf8');
     } catch (err) {
       console.error('Failed to write server.conf:', err);
+    }
+
+    // Also sanitize external/system Tachidesk and Suwayomi config files to prevent headless browser launch crashes
+    const extraConfigPaths = [
+      path.join(process.env.LOCALAPPDATA || '', 'Tachidesk', 'server.conf'),
+      path.join(os.homedir(), '.local', 'share', 'Tachidesk', 'server.conf'),
+      path.join(os.homedir(), '.suwayomi', 'server.conf'),
+    ];
+
+    for (const extraPath of extraConfigPaths) {
+      if (fs.existsSync(extraPath)) {
+        try {
+          let content = fs.readFileSync(extraPath, 'utf8');
+          let modified = false;
+          if (content.includes('server.initialOpenInBrowserEnabled = true')) {
+            content = content.replace(/server\.initialOpenInBrowserEnabled\s*=\s*true/g, 'server.initialOpenInBrowserEnabled = false');
+            modified = true;
+          }
+          if (content.includes('server.systemTrayEnabled = true')) {
+            content = content.replace(/server\.systemTrayEnabled\s*=\s*true/g, 'server.systemTrayEnabled = false');
+            modified = true;
+          }
+          if (content.includes('server.kcefEnabled = true')) {
+            content = content.replace(/server\.kcefEnabled\s*=\s*true/g, 'server.kcefEnabled = false');
+            modified = true;
+          }
+          if (modified) {
+            fs.writeFileSync(extraPath, content, 'utf8');
+          }
+        } catch {
+          // Ignore permission or file lock errors
+        }
+      }
     }
 
     return dataDir;

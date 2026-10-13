@@ -5,6 +5,7 @@ src/**
 scripts/**
 docs/**
 bin/**
+!bin/classes/**
 data/**
 node_modules/**
 tsconfig.json
