@@ -27,11 +27,76 @@ export class ServerManager {
   private configManager: ConfigManager;
   private stateChangeEmitter = new vscode.EventEmitter<ServerState>();
   public readonly onDidChangeState = this.stateChangeEmitter.event;
+  private idleTimer: NodeJS.Timeout | null = null;
+  private readonly idleTimeoutMs: number = 15 * 60 * 1000; // 15 minutes auto-sleep
 
   constructor(private context: vscode.ExtensionContext, configManager?: ConfigManager) {
     this.outputChannel = vscode.window.createOutputChannel('MangaBar Server');
     this.configManager = configManager || new ConfigManager(context);
     this.currentPort = this.configManager.getConfiguredPort();
+  }
+
+  public resetIdleTimer(): void {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+    if (this.state === 'RUNNING' || this.state === 'STARTING') {
+      this.idleTimer = setTimeout(() => {
+        this.outputChannel.appendLine(
+          '[MangaBar] 15 minutes of idle time elapsed. Automatically sleeping background server daemon to conserve host RAM and CPU.'
+        );
+        this.stopServer().catch((err) => {
+          this.outputChannel.appendLine(`[MangaBar Error] Auto-sleep failure: ${err.message}`);
+        });
+      }, this.idleTimeoutMs);
+    }
+  }
+
+  public async ensureRunningOnDemand(): Promise<boolean> {
+    this.resetIdleTimer();
+    if (this.state === 'RUNNING') {
+      return true;
+    }
+    if (this.state === 'STARTING') {
+      return new Promise<boolean>((resolve) => {
+        const disposable = this.onDidChangeState((newState) => {
+          if (newState === 'RUNNING') {
+            disposable.dispose();
+            resolve(true);
+          } else if (newState === 'ERROR' || newState === 'STOPPED') {
+            disposable.dispose();
+            resolve(false);
+          }
+        });
+      });
+    }
+
+    return vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Starting MangaBar Engine (Capped: 384MB)...',
+        cancellable: false,
+      },
+      async (progress) => {
+        progress.report({ message: 'Launching low-overhead background daemon...' });
+        return await this.startServer();
+      }
+    );
+  }
+
+  private sanitizeUpstreamHeaders(
+    upstreamHeaders: http.IncomingHttpHeaders
+  ): http.OutgoingHttpHeaders {
+    const headers: http.OutgoingHttpHeaders = { ...upstreamHeaders };
+    delete headers['x-frame-options'];
+    delete headers['frame-options'];
+    delete headers['content-security-policy'];
+    delete headers['content-security-policy-report-only'];
+    delete headers['cross-origin-opener-policy'];
+    delete headers['cross-origin-embedder-policy'];
+    headers['access-control-allow-origin'] = '*';
+    return headers;
   }
 
   public getState(): ServerState {
@@ -82,6 +147,7 @@ export class ServerManager {
       const enhancerCode = getReaderEnhancerScript();
 
       this.proxyServer = http.createServer((req, res) => {
+        this.resetIdleTimer();
         // 1. Serve enhancer script
         if (req.url === '/__mangabar_enhancer.js') {
           res.writeHead(200, {
@@ -217,7 +283,7 @@ export class ServerManager {
                 const injected = body.includes('</body>')
                   ? body.replace('</body>', '<script src="/__mangabar_enhancer.js"></script></body>')
                   : body + '<script src="/__mangabar_enhancer.js"></script>';
-                const resHeaders = { ...upstreamRes.headers };
+                const resHeaders = this.sanitizeUpstreamHeaders(upstreamRes.headers);
                 delete resHeaders['content-length'];
                 delete resHeaders['content-encoding'];
                 resHeaders['content-type'] = 'text/html; charset=utf-8';
@@ -264,7 +330,7 @@ export class ServerManager {
                   );
                 }
 
-                const resHeaders = { ...upstreamRes.headers };
+                const resHeaders = this.sanitizeUpstreamHeaders(upstreamRes.headers);
                 delete resHeaders['content-length'];
                 delete resHeaders['content-encoding'];
                 delete resHeaders['etag'];
@@ -274,7 +340,8 @@ export class ServerManager {
                 res.end(body);
               });
             } else {
-              res.writeHead(upstreamRes.statusCode || 200, upstreamRes.headers);
+              const resHeaders = this.sanitizeUpstreamHeaders(upstreamRes.headers);
+              res.writeHead(upstreamRes.statusCode || 200, resHeaders);
               upstreamRes.pipe(res);
             }
           }
@@ -643,6 +710,13 @@ export class ServerManager {
     this.setState('STARTING');
 
     const javaArgs = [
+      '-Xmx384m',
+      '-Xms64m',
+      '-XX:+UseSerialGC',
+      '-XX:TieredStopAtLevel=1',
+      '--add-opens=java.base/java.lang=ALL-UNNAMED',
+      '--add-opens=java.base/java.util=ALL-UNNAMED',
+      '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
       '-Djava.awt.headless=true',
       '-Dserver.initialOpenInBrowserEnabled=false',
       '-Dserver.systemTrayEnabled=false',
@@ -661,8 +735,9 @@ export class ServerManager {
     let exitCodeResult: number | null = null;
 
     try {
+      const launchCwd = fs.existsSync(dataDir) ? dataDir : path.dirname(jarPath);
       this.childProcess = child_process.spawn(javaCmd, javaArgs, {
-        cwd: toSafePath(workspaceRoot),
+        cwd: launchCwd,
         windowsHide: true,
       });
 
@@ -720,6 +795,7 @@ export class ServerManager {
     if (ready) {
       await this.startProxyServer();
       this.setState('RUNNING');
+      this.resetIdleTimer();
       this.outputChannel.appendLine(`[MangaBar] Server is READY at ${this.getServerUrl()}`);
       return true;
     } else {
@@ -774,6 +850,10 @@ export class ServerManager {
   }
 
   public async stopServer(): Promise<void> {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
     const port = this.currentPort;
     this.outputChannel.appendLine(`[MangaBar] Stopping server on port ${port}...`);
 

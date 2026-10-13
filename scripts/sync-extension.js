@@ -8,17 +8,30 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-
 const rootDir = path.resolve(__dirname, '..');
-const candidates = [
-  path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0'),
-  path.join(os.homedir(), '.antigravity', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0'),
-  path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0'),
-  path.join(os.homedir(), '.cursor', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0'),
-  path.join(os.homedir(), '.antigravity-ide', 'extensions', 'local-developer.antigravity-mangabar-0.2.0'),
-  path.join(os.homedir(), '.antigravity', 'extensions', 'local-developer.antigravity-mangabar-0.2.0'),
-  path.join(os.homedir(), '.vscode', 'extensions', 'local-developer.antigravity-mangabar-0.2.0'),
+
+const extensionBases = [
+  path.join(os.homedir(), '.antigravity-ide', 'extensions'),
+  path.join(os.homedir(), '.antigravity', 'extensions'),
+  path.join(os.homedir(), '.vscode', 'extensions'),
+  path.join(os.homedir(), '.cursor', 'extensions'),
 ];
+
+const candidates = [];
+for (const base of extensionBases) {
+  if (fs.existsSync(base)) {
+    try {
+      const items = fs.readdirSync(base);
+      for (const item of items) {
+        if (item.toLowerCase().includes('mangabar')) {
+          candidates.push(path.join(base, item));
+        }
+      }
+    } catch (e) {
+      // Ignore read errors
+    }
+  }
+}
 
 function copyRecursive(src, dest) {
   if (!fs.existsSync(src)) return;
@@ -51,7 +64,25 @@ for (const targetDir of candidates) {
     // 4. Copy README.md (both case variations for IDE details webview)
     copyRecursive(path.join(rootDir, 'README.md'), path.join(targetDir, 'README.md'));
     copyRecursive(path.join(rootDir, 'README.md'), path.join(targetDir, 'readme.md'));
+    // 5. Copy bin/ if present in workspace and missing in target extension
+    const srcBin = path.join(rootDir, 'bin');
+    const targetBin = path.join(targetDir, 'bin');
+    if (fs.existsSync(srcBin) && !fs.existsSync(targetBin)) {
+      console.log(`[MangaBar Sync] Copying binary runtime to: ${targetBin}`);
+      copyRecursive(srcBin, targetBin);
+    }
     syncCount++;
+  }
+}
+
+// Also ensure ~/.mangabar/bin has a copy of the server jar and jre if available
+const srcBin = path.join(rootDir, 'bin');
+const globalMangabarBin = path.join(os.homedir(), '.mangabar', 'bin');
+if (fs.existsSync(srcBin)) {
+  const globalJar = path.join(globalMangabarBin, 'mangabar-server.jar');
+  if (!fs.existsSync(globalJar)) {
+    console.log(`[MangaBar Sync] Ensuring global ~/.mangabar/bin runtime...`);
+    copyRecursive(srcBin, globalMangabarBin);
   }
 }
 
