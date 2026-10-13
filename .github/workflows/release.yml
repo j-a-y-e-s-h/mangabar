@@ -30,5 +30,13 @@ jobs:
       - name: Package VSIX
         run: npx @vscode/vsce package --no-dependencies
 
-      - name: Publish to Open VSX (Trusted Publisher OIDC)
-        run: npx ovsx publish mangabar-*.vsix
+      - name: Publish to Open VSX
+        env:
+          OPEN_VSX_TOKEN: ${{ secrets.OPEN_VSX_TOKEN || secrets.OVSX_PAT }}
+        run: |
+          if [ -n "$OPEN_VSX_TOKEN" ]; then
+            npx ovsx publish mangabar-*.vsix --pat "$OPEN_VSX_TOKEN"
+          else
+            echo "::warning::OPEN_VSX_TOKEN secret not configured in repository. Skipping automatic publish to Open VSX. Add OPEN_VSX_TOKEN to repository secrets to enable automatic publishing."
+          fi
+
