@@ -147,24 +147,21 @@
       --bg-surface: #0e121b;
       --card-bg: rgba(18, 24, 38, 0.75);
       --card-border: rgba(255, 255, 255, 0.08);
-      --card-hover-border: rgba(0, 229, 255, 0.35);
-      --accent: #00e5ff;
-      --accent-glow: rgba(0, 229, 255, 0.3);
-      --accent-purple: #a855f7;
-      --accent-purple-glow: rgba(168, 85, 247, 0.25);
-      --text: #f3f6fb;
+      --card-hover-border: rgba(255, 255, 255, 0.18);
+      --accent: #38bdf8;
+      --text: #f8fafc;
       --text-muted: #94a3b8;
-      --text-dim: #64748b;
+      --text-dim: #94a3b8;
       --radius-sm: 8px;
       --radius: 14px;
       --radius-lg: 20px;
-      --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     ::selection {
-      background: rgba(0, 229, 255, 0.35);
+      background: rgba(56, 189, 248, 0.25);
       color: #ffffff;
     }
 
@@ -180,7 +177,7 @@
       border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: var(--accent);
+      background: rgba(255, 255, 255, 0.28);
     }
 
     :focus-visible {
@@ -195,8 +192,7 @@
       line-height: 1.6;
       overflow-x: hidden;
       background-image: 
-        radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.12) 0%, transparent 60%),
-        radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+        radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.07) 0%, transparent 60%);
       background-attachment: fixed;
       -webkit-font-smoothing: antialiased;
     }
@@ -254,10 +250,10 @@
       border-radius: var(--radius-sm);
     }
     .nav-link:hover {
-      color: var(--accent);
+      color: var(--text);
     }
     .nav-cta {
-      background: linear-gradient(135deg, var(--accent), #00a8ff);
+      background: #f8fafc;
       color: #050811;
       padding: 0.5rem 1.2rem;
       border-radius: var(--radius-sm);
@@ -269,11 +265,12 @@
       align-items: center;
       justify-content: center;
       transition: var(--transition);
-      box-shadow: 0 0 16px var(--accent-glow);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
     .nav-cta:hover {
+      background: #ffffff;
       transform: translateY(-1px);
-      box-shadow: 0 0 24px rgba(0, 229, 255, 0.5);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     /* Hero Section */
@@ -285,20 +282,22 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 16px;
-      background: rgba(0, 229, 255, 0.08);
-      border: 1px solid rgba(0, 229, 255, 0.25);
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 100px;
-      color: var(--accent);
-      font-size: 0.85rem;
-      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 500;
       margin-bottom: 1.5rem;
-      min-height: 38px;
-      animation: pulse 3s infinite;
+      min-height: 36px;
     }
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.2); }
-      50% { box-shadow: 0 0 16px 2px rgba(0, 229, 255, 0.25); }
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+      display: inline-block;
     }
     h1 {
       font-size: clamp(2.2rem, 5vw, 3.8rem);
@@ -310,7 +309,8 @@
       text-wrap: balance;
     }
     h1 .accent-text {
-      color: var(--accent);
+      color: var(--text-muted);
+      font-weight: 600;
     }
     p.lead {
       font-size: clamp(1.05rem, 2vw, 1.25rem);
@@ -343,13 +343,14 @@
       cursor: pointer;
     }
     .btn-primary {
-      background: linear-gradient(135deg, #00e5ff 0%, #0099ff 100%);
+      background: #f8fafc;
       color: #030712;
-      box-shadow: 0 0 24px var(--accent-glow);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
     }
     .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 35px rgba(0, 229, 255, 0.6);
+      background: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
     }
     .btn-secondary {
       background: var(--card-bg);
@@ -358,8 +359,8 @@
       backdrop-filter: blur(10px);
     }
     .btn-secondary:hover {
-      border-color: var(--card-hover-border);
-      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
       background: rgba(25, 34, 52, 0.8);
     }
 
@@ -376,17 +377,16 @@
       border-radius: 100px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 0.88rem;
-      color: var(--accent);
+      color: var(--text);
       margin: 0 auto 2.25rem;
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 20px rgba(0, 0, 0, 0.35);
       transition: var(--transition);
     }
     .cli-bar:hover {
-      border-color: rgba(0, 229, 255, 0.35);
-      box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.2);
     }
     .cli-prompt {
-      color: var(--accent);
+      color: var(--text-muted);
       font-weight: 700;
       user-select: none;
     }
@@ -407,10 +407,8 @@
       transition: var(--transition);
     }
     .cli-copy-btn:hover {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #030712;
-      box-shadow: 0 0 12px var(--accent-glow);
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
     }
 
     /* Badges Bar */
@@ -429,7 +427,7 @@
       background: #090c14;
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-lg);
-      box-shadow: 0 25px 70px -12px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 229, 255, 0.12);
+      box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.8), 0 1px 1px rgba(255, 255, 255, 0.06);
       overflow: hidden;
       text-align: left;
       position: relative;
@@ -479,11 +477,11 @@
       background: rgba(255, 255, 255, 0.06);
     }
     .showcase-tab.active {
-      background: rgba(0, 229, 255, 0.14);
-      color: var(--accent);
-      border-color: rgba(0, 229, 255, 0.35);
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.2);
       font-weight: 600;
-      box-shadow: 0 0 16px rgba(0, 229, 255, 0.25);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
     }
     .showcase-tab .tab-icon {
       font-size: 0.95rem;
@@ -529,15 +527,6 @@
       text-align: center;
       margin-bottom: 2.5rem;
     }
-    .section-tag {
-      text-transform: uppercase;
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      color: var(--accent);
-      margin-bottom: 0.5rem;
-      display: block;
-    }
     .section-title {
       font-size: clamp(1.8rem, 3.5vw, 2.4rem);
       font-weight: 700;
@@ -571,9 +560,9 @@
       flex-direction: column;
     }
     .card:hover {
-      border-color: var(--card-hover-border);
-      transform: translateY(-4px);
-      box-shadow: 0 12px 30px -10px rgba(0, 229, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.5);
     }
     .card-icon {
       font-size: 1.8rem;
@@ -636,8 +625,8 @@
       letter-spacing: 0.05em;
     }
     th.highlight, td.highlight {
-      background: rgba(0, 229, 255, 0.05);
-      color: var(--accent);
+      background: rgba(255, 255, 255, 0.04);
+      color: #ffffff;
       font-weight: 600;
     }
     td.feature-name {
@@ -645,12 +634,12 @@
       font-weight: 500;
     }
     .check-yes {
-      color: #10b981;
-      font-weight: 700;
+      color: #34d399;
+      font-weight: 600;
     }
     .check-no {
-      color: #ef4444;
-      font-weight: 700;
+      color: #f87171;
+      font-weight: 600;
     }
 
     /* Keyboard Shortcuts Cheat Sheet */
@@ -677,9 +666,9 @@
       transition: var(--transition);
     }
     .shortcut-card:hover {
-      border-color: rgba(0, 229, 255, 0.35);
+      border-color: rgba(255, 255, 255, 0.18);
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px -6px rgba(0, 229, 255, 0.12);
+      box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4);
     }
     .shortcut-desc {
       color: var(--text);
@@ -703,22 +692,22 @@
     }
     kbd {
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      border-bottom: 2px solid rgba(0, 0, 0, 0.6);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      color: var(--accent);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-bottom: 2px solid rgba(0, 0, 0, 0.5);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      color: #e2e8f0;
       padding: 4px 9px;
       border-radius: 6px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 0.82rem;
-      font-weight: 600;
+      font-weight: 500;
       line-height: 1.1;
       display: inline-block;
       letter-spacing: -0.01em;
       white-space: nowrap;
     }
 
-    /* FAQ Accordion */
+    /* FAQ Accordion - Modern GPU-friendly grid animation */
     .faq {
       margin: 5rem 0;
     }
@@ -756,41 +745,54 @@
     }
     .faq-icon {
       font-size: 1.2rem;
-      color: var(--accent);
-      transition: transform 0.25s ease;
+      color: var(--text-muted);
+      transition: transform 0.25s ease, color 0.2s ease;
     }
     .faq-item.open .faq-icon {
       transform: rotate(45deg);
+      color: #ffffff;
     }
     .faq-answer {
-      max-height: 0;
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .faq-item.open .faq-answer {
+      grid-template-rows: 1fr;
+    }
+    .faq-answer-inner {
       overflow: hidden;
-      transition: max-height 0.3s ease, padding 0.3s ease;
+      padding: 0 1.5rem;
       color: var(--text-muted);
       font-size: 0.95rem;
       line-height: 1.65;
-      padding: 0 1.5rem;
+      opacity: 0;
+      transition: opacity 0.2s ease, padding-bottom 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .faq-item.open .faq-answer {
-      max-height: 250px;
+    .faq-item.open .faq-answer-inner {
+      opacity: 1;
       padding-bottom: 1.25rem;
     }
 
-    /* Footer */
+    /* Footer - WCAG AAA 7.5:1 text contrast */
     footer {
       text-align: center;
-      padding: 3.5rem 0 1.5rem;
+      padding: 3.5rem 0 2rem;
       border-top: 1px solid var(--card-border);
-      color: var(--text-dim);
+      color: #94a3b8;
       font-size: 0.92rem;
     }
+    footer p {
+      color: #94a3b8;
+    }
     footer a {
-      color: var(--accent);
-      text-decoration: none;
+      color: #cbd5e1;
+      text-decoration: underline;
+      text-underline-offset: 3px;
       transition: var(--transition);
     }
     footer a:hover {
-      text-decoration: underline;
+      color: #ffffff;
     }
     .footer-links {
       display: flex;
@@ -798,6 +800,14 @@
       gap: 1.5rem;
       margin-bottom: 1.2rem;
       flex-wrap: wrap;
+    }
+    .footer-links a {
+      color: #cbd5e1;
+      text-decoration: none;
+    }
+    .footer-links a:hover {
+      color: #ffffff;
+      text-decoration: underline;
     }
 
     /* Tabular Numerals for craft floor compliance */
@@ -984,8 +994,8 @@
     <!-- Hero Header -->
     <header>
       <div class="pill-badge">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-        <span>Official Release v0.2.0 • 100% Free & Open Source</span>
+        <span class="pill-dot"></span>
+        <span>MangaBar v0.2.4 • Free & Open Source</span>
       </div>
 
       <h1>MangaBar <span class="accent-text">(Manga Bar)</span></h1>
@@ -993,7 +1003,7 @@
 
       <div class="badge-bar">
         <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/vscode-marketplace/v/j-a-y-e-s-h.mangabar?style=for-the-badge&logo=visualstudiocode&logoColor=white&label=Marketplace" alt="VS Code Marketplace"></a>
-        <a href="https://open-vsx.org/extension/j-a-y-e-s-h/mangabar"><img src="https://img.shields.io/badge/Open%20VSX-v0.2.0-7c3aed?style=for-the-badge&logo=eclipseide&logoColor=white" alt="Open VSX Registry"></a>
+        <a href="https://open-vsx.org/extension/j-a-y-e-s-h/mangabar"><img src="https://img.shields.io/open-vsx/v/j-a-y-e-s-h/mangabar?style=for-the-badge&logo=eclipseide&logoColor=white&label=Open%20VSX" alt="Open VSX Registry"></a>
         <a href="https://github.com/j-a-y-e-s-h/mangabar/stargazers"><img src="https://img.shields.io/github/stars/j-a-y-e-s-h/mangabar?style=for-the-badge&color=f1c40f&logo=github" alt="GitHub Stars"></a>
         <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-6c5ce7?style=for-the-badge" alt="Platforms">
         <img src="https://img.shields.io/badge/Sources-1%2C440%2B%20Extensions-ff7675?style=for-the-badge" alt="1,440+ Sources">
@@ -1076,7 +1086,6 @@
     <!-- Core Features Grid -->
     <section id="features">
       <div class="section-header">
-        <span class="section-tag">High-Performance Craft</span>
         <h2 class="section-title">Built Specially for Developers</h2>
         <p class="section-desc">Zero context switching. Read your favorite manga, manhwa, and comics right beside your codebase.</p>
       </div>
@@ -1123,7 +1132,6 @@
     <!-- Comparison Matrix -->
     <section id="comparison" class="matrix-section">
       <div class="section-header">
-        <span class="section-tag">Why MangaBar?</span>
         <h2 class="section-title">The Best Way to Read Manga</h2>
         <p class="section-desc">See how MangaBar compares against browser reading and standard webview extensions.</p>
       </div>
@@ -1183,7 +1191,6 @@
     <!-- Shortcuts Reference -->
     <section id="shortcuts" class="shortcuts-section">
       <div class="section-header">
-        <span class="section-tag">Efficiency First</span>
         <h2 class="section-title">Built-In Keyboard Shortcuts</h2>
         <p class="section-desc">Never leave your keyboard while coding or reading.</p>
       </div>
@@ -1219,7 +1226,6 @@
     <!-- FAQ Section -->
     <section id="faq" class="faq">
       <div class="section-header">
-        <span class="section-tag">Answers & Help</span>
         <h2 class="section-title">Frequently Asked Questions</h2>
         <p class="section-desc">Everything you need to know about MangaBar (Manga Bar) for VS Code & Cursor.</p>
       </div>
@@ -1231,7 +1237,9 @@
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            MangaBar (also searched as Manga Bar) is an open-source, offline-first manga, manhwa, and comic reader extension designed specifically for code editors such as VS Code, Cursor, Windsurf, and VSCodium. Read without context switching or breaking your development flow.
+            <div class="faq-answer-inner">
+              MangaBar (also searched as Manga Bar) is an open-source, offline-first manga, manhwa, and comic reader extension designed specifically for code editors such as VS Code, Cursor, Windsurf, and VSCodium. Read without context switching or breaking your development flow.
+            </div>
           </div>
         </div>
 
@@ -1241,7 +1249,9 @@
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            Install MangaBar directly from the VS Code Marketplace or load the .vsix in Cursor. Press <kbd>Ctrl+Alt+M</kbd> (<kbd>Cmd+Alt+M</kbd> on macOS) to open the reader sidebar, browse 1,440+ sources like MangaDex, and read directly inside your IDE.
+            <div class="faq-answer-inner">
+              Install MangaBar directly from the VS Code Marketplace or load the .vsix in Cursor. Press <kbd>Ctrl+Alt+M</kbd> (<kbd>Cmd+Alt+M</kbd> on macOS) to open the reader sidebar, browse 1,440+ sources like MangaDex, and read directly inside your IDE.
+            </div>
           </div>
         </div>
 
@@ -1251,7 +1261,9 @@
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            Yes. MangaBar fully supports offline chapter downloads. Downloaded chapters are saved locally on disk in <code>~/.mangabar</code> so you can read anytime without internet connectivity.
+            <div class="faq-answer-inner">
+              Yes. MangaBar fully supports offline chapter downloads. Downloaded chapters are saved locally on disk in <code>~/.mangabar</code> so you can read anytime without internet connectivity.
+            </div>
           </div>
         </div>
 
@@ -1261,7 +1273,9 @@
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            MangaBar supports over 1,440+ community extension sources via Keiyoushi, including MangaDex, ComicK, MangaKakalot, Asura Scans, Flame Comics, and dozens of localized language catalogs.
+            <div class="faq-answer-inner">
+              MangaBar supports over 1,440+ community extension sources via Keiyoushi, including MangaDex, ComicK, MangaKakalot, Asura Scans, Flame Comics, and dozens of localized language catalogs.
+            </div>
           </div>
         </div>
 
@@ -1271,7 +1285,9 @@
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            Yes! MangaBar is 100% free and open-source under the MIT license with zero telemetry, no tracking, and no ads. All your reading history and downloads remain completely private on your local disk.
+            <div class="faq-answer-inner">
+              Yes! MangaBar is 100% free and open-source under the MIT license with zero telemetry, no tracking, and no ads. All your reading history and downloads remain completely private on your local disk.
+            </div>
           </div>
         </div>
 
@@ -1281,7 +1297,9 @@
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            No. MangaBar implements clamped zoom event isolation (0.5x to 4.0x) so zooming pages never zooms your code font or IDE window.
+            <div class="faq-answer-inner">
+              No. MangaBar implements clamped zoom event isolation (0.5x to 4.0x) so zooming pages never zooms your code font or IDE window.
+            </div>
           </div>
         </div>
 
@@ -1291,7 +1309,9 @@
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            Yes. MangaBar is 100% compatible with any editor built on the modern VS Code core (v1.85.0+), including Cursor, Windsurf, VSCodium, and Positron.
+            <div class="faq-answer-inner">
+              Yes. MangaBar is 100% compatible with any editor built on the modern VS Code core (v1.85.0+), including Cursor, Windsurf, VSCodium, and Positron.
+            </div>
           </div>
         </div>
       </div>
