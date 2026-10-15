@@ -98,4 +98,4 @@ Yes. MangaBar has native chapter downloading capabilities. Chapters are stored l
 No. MangaBar features event-isolated viewport scaling that traps wheel and keyboard zoom events within the reader canvas, leaving your editor font size completely untouched.
 
 ### How do I install MangaBar?
-Open VS Code, press `Ctrl+Shift+X`, search for `MangaBar`, and click Install. Alternatively, download the `.vsix` release from GitHub and run `code --install-extension mangabar-0.2.0.vsix` or `cursor --install-extension mangabar-0.2.0.vsix`.
+Open VS Code, press `Ctrl+Shift+X`, search for `MangaBar`, and click Install. Alternatively, download the `.vsix` release from GitHub and run `code --install-extension mangabar-0.2.4.vsix` or `cursor --install-extension mangabar-0.2.4.vsix`.

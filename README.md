@@ -95,19 +95,19 @@ code --install-extension j-a-y-e-s-h.mangabar
 
 ### 2. Manual VSIX Install (Cursor, Windsurf, VSCodium & Offline)
 
-Download `mangabar-0.2.0.vsix` from [GitHub Releases](https://github.com/j-a-y-e-s-h/mangabar/releases/latest), then run:
+Download `mangabar-0.2.4.vsix` from [GitHub Releases](https://github.com/j-a-y-e-s-h/mangabar/releases/latest), then run:
 ```bash
 # For Cursor:
-cursor --install-extension mangabar-0.2.0.vsix
+cursor --install-extension mangabar-0.2.4.vsix
 
 # For VS Code / VSCodium:
-code --install-extension mangabar-0.2.0.vsix
+code --install-extension mangabar-0.2.4.vsix
 ```
 
 *Or via IDE UI:*
 1. Open the Extensions View (`Ctrl+Shift+X` or `Cmd+Shift+X`).
 2. Click the **`...`** (Views and More Actions) menu in the top-right corner.
-3. Select **Install from VSIX...** and choose `mangabar-0.2.0.vsix`.
+3. Select **Install from VSIX...** and choose `mangabar-0.2.4.vsix`.
 
 ---
 

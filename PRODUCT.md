@@ -47,7 +47,7 @@ Unlike web browsers that introduce ad popups, battery drain, and distracting con
 
 ## Evidence on Hand
 
-- VS Code Marketplace Extension: `j-a-y-e-s-h.mangabar` (v0.2.0 active).
+- VS Code Marketplace Extension: `j-a-y-e-s-h.mangabar` (v0.2.4 active).
 - GitHub Repository: `https://github.com/j-a-y-e-s-h/mangabar`.
 - High-res media assets: `media/feature-reader.jpg`, `media/feature-extensions.jpg`, `media/feature-library.jpg`, `media/hero-banner.jpg`.
 

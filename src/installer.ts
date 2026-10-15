@@ -8,12 +8,37 @@ import { URL } from 'url';
 import * as os from 'os';
 
 export const SERVER_VERSION = 'v2.4.2366';
-export const RELEASE_TAG = 'v0.2.0';
+export const RELEASE_TAG = 'v0.2.4';
 export const JAR_FILENAME = 'mangabar-server.jar';
 export const DEFAULT_SERVER_DOWNLOAD_URL = `https://github.com/j-a-y-e-s-h/mangabar/releases/download/${RELEASE_TAG}/mangabar-server.jar`;
 export const FALLBACK_SERVER_DOWNLOAD_URL = `https://github.com/Suwayomi/Suwayomi-Server/releases/download/${SERVER_VERSION}/Suwayomi-Server-${SERVER_VERSION}.jar`;
 export const ADOPTIUM_JRE21_URL =
   'https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_windows_hotspot_21.0.12.1_1.zip';
+
+export function getInstalledExtensionDirs(): string[] {
+  const extensionBases = [
+    path.join(os.homedir(), '.antigravity-ide', 'extensions'),
+    path.join(os.homedir(), '.antigravity', 'extensions'),
+    path.join(os.homedir(), '.vscode', 'extensions'),
+    path.join(os.homedir(), '.cursor', 'extensions'),
+  ];
+  const results: string[] = [];
+  for (const base of extensionBases) {
+    if (fs.existsSync(base)) {
+      try {
+        const items = fs.readdirSync(base);
+        for (const item of items) {
+          if (item.toLowerCase().includes('mangabar')) {
+            results.push(path.join(base, item));
+          }
+        }
+      } catch {
+        // Ignore read errors
+      }
+    }
+  }
+  return results;
+}
 
 export function getBinDirectory(extensionRoot: string): string {
   const binDir = path.join(extensionRoot, 'bin');
@@ -24,10 +49,14 @@ export function getBinDirectory(extensionRoot: string): string {
 }
 
 export function getServerJarPath(extensionRoot: string, workspaceRoot?: string): string {
+  const installedBinDirs = getInstalledExtensionDirs().map((d) => path.join(d, 'bin'));
   const candidateDirs = [
     path.join(extensionRoot, 'bin'),
     workspaceRoot ? path.join(workspaceRoot, 'bin') : null,
     path.join(os.homedir(), '.mangabar', 'bin'),
+    ...installedBinDirs,
+    path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.4-universal', 'bin'),
+    path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.4', 'bin'),
     path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0-universal', 'bin'),
     path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0', 'bin'),
     path.join(os.homedir(), 'Desktop', 'PROS', 'IDE Mihon', 'bin'),
@@ -64,10 +93,14 @@ export function getServerJarPath(extensionRoot: string, workspaceRoot?: string):
 }
 
 export function getPatchedClassesDir(extensionRoot: string, workspaceRoot?: string): string | null {
+  const installedClassDirs = getInstalledExtensionDirs().map((d) => path.join(d, 'bin', 'classes'));
   const candidateDirs = [
     path.join(extensionRoot, 'bin', 'classes'),
     workspaceRoot ? path.join(workspaceRoot, 'bin', 'classes') : null,
     path.join(os.homedir(), '.mangabar', 'bin', 'classes'),
+    ...installedClassDirs,
+    path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.4-universal', 'bin', 'classes'),
+    path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.4', 'bin', 'classes'),
     path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0-universal', 'bin', 'classes'),
     path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0', 'bin', 'classes'),
     path.join(os.homedir(), 'Desktop', 'PROS', 'IDE Mihon', 'bin', 'classes'),
@@ -169,6 +202,12 @@ export function findLocalJreExecutable(extensionRoot: string, workspaceRoot?: st
     candidates.push(path.join(workspaceRoot, 'jre', 'bin', exeName));
   }
   candidates.push(path.join(os.homedir(), '.mangabar', 'bin', 'jre21', 'bin', exeName));
+  for (const extDir of getInstalledExtensionDirs()) {
+    candidates.push(path.join(extDir, 'bin', 'jre21', 'bin', exeName));
+    candidates.push(path.join(extDir, 'jre21', 'bin', exeName));
+  }
+  candidates.push(path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.4-universal', 'bin', 'jre21', 'bin', exeName));
+  candidates.push(path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.4', 'bin', 'jre21', 'bin', exeName));
   candidates.push(path.join(os.homedir(), '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0-universal', 'bin', 'jre21', 'bin', exeName));
   candidates.push(path.join(os.homedir(), '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0', 'bin', 'jre21', 'bin', exeName));
   candidates.push(path.join(os.homedir(), 'Desktop', 'PROS', 'IDE Mihon', 'bin', 'jre21', 'bin', exeName));

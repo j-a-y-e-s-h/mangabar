@@ -876,7 +876,7 @@ export class ServerManager {
       '| |  | | (_| | | | | (_| | (_| | |_) | (_| | |   ',
       '|_|  |_|\\__,_|_| |_|\\__, |\\__,_|____/ \\__,_|_|   ',
       '                    |___/                        ',
-      'MangaBar Server Engine v0.2.0 • High-Performance Manga Server',
+      'MangaBar Server Engine v0.2.4 • High-Performance Manga Server',
       '========================================================================',
     ].join('\n');
     this.outputChannel.appendLine(banner);

@@ -68,6 +68,9 @@ console.log('  ✅ Non-technical human-friendly offline error recovery verified 
 // 4. Verify Sync to All VS Code / Antigravity Extension Locations
 console.log('\n[Test 4/5] Verifying installation targets sync...');
 const syncTargets = [
+  path.join(process.env.USERPROFILE, '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.4', 'dist', 'extension.js'),
+  path.join(process.env.USERPROFILE, '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.4-universal', 'dist', 'extension.js'),
+  path.join(process.env.USERPROFILE, '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.4', 'dist', 'extension.js'),
   path.join(process.env.USERPROFILE, '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0', 'dist', 'extension.js'),
   path.join(process.env.USERPROFILE, '.antigravity-ide', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0-universal', 'dist', 'extension.js'),
   path.join(process.env.USERPROFILE, '.vscode', 'extensions', 'j-a-y-e-s-h.mangabar-0.2.0', 'dist', 'extension.js'),
