@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/badge/Marketplace-v0.2.3-007acc?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="VS Code Marketplace"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/badge/Marketplace-v0.2.4-007acc?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="VS Code Marketplace"></a>
   <a href="https://open-vsx.org/extension/j-a-y-e-s-h/mangabar"><img src="https://img.shields.io/open-vsx/v/j-a-y-e-s-h/mangabar?style=for-the-badge&logo=eclipseide&logoColor=white&label=Open%20VSX" alt="Open VSX Registry"></a>
   <a href="https://github.com/j-a-y-e-s-h/mangabar/releases/latest"><img src="https://img.shields.io/github/v/release/j-a-y-e-s-h/mangabar?style=for-the-badge&logo=github&color=2ea44f&label=Release" alt="GitHub Release"></a>
   <a href="https://github.com/j-a-y-e-s-h/mangabar/stargazers"><img src="https://img.shields.io/github/stars/j-a-y-e-s-h/mangabar?style=for-the-badge&color=f1c40f&logo=github" alt="GitHub Stars"></a>

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.4] - 2026-10-15
+
+### Changed
+- **Dynamic Shields & Store Metadata Refresh**:
+  - Upgraded store and registry badges to dynamic auto-updating live shields pulling directly from Open VSX and GitHub Releases.
+  - Refreshed all package documentation and store manifests to accurately reflect the complete **1,440+** Keiyoushi source extension catalog.
+  - Upgraded `.github/workflows/release.yml` with automated dual-store CI/CD publishing support for both VS Code Marketplace and Open VSX.
+
 ## [0.2.3] - 2026-10-15
 
 ### Added
