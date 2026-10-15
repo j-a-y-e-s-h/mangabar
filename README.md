@@ -8,14 +8,14 @@
 
 <p align="center">
   <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/badge/Marketplace-v0.2.3-007acc?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="VS Code Marketplace"></a>
-  <a href="https://open-vsx.org/extension/j-a-y-e-s-h/mangabar"><img src="https://img.shields.io/badge/Open%20VSX-v0.2.3-7c3aed?style=for-the-badge&logo=eclipseide&logoColor=white" alt="Open VSX Registry"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=j-a-y-e-s-h.mangabar"><img src="https://img.shields.io/badge/Downloads-250%2B-00bcd4?style=for-the-badge" alt="Installs"></a>
+  <a href="https://open-vsx.org/extension/j-a-y-e-s-h/mangabar"><img src="https://img.shields.io/open-vsx/v/j-a-y-e-s-h/mangabar?style=for-the-badge&logo=eclipseide&logoColor=white&label=Open%20VSX" alt="Open VSX Registry"></a>
+  <a href="https://github.com/j-a-y-e-s-h/mangabar/releases/latest"><img src="https://img.shields.io/github/v/release/j-a-y-e-s-h/mangabar?style=for-the-badge&logo=github&color=2ea44f&label=Release" alt="GitHub Release"></a>
   <a href="https://github.com/j-a-y-e-s-h/mangabar/stargazers"><img src="https://img.shields.io/github/stars/j-a-y-e-s-h/mangabar?style=for-the-badge&color=f1c40f&logo=github" alt="GitHub Stars"></a>
   <a href="https://skills.sh/"><img src="https://img.shields.io/badge/Agent_Skill-npx_skills_add_j--a--y--e--s--h%2Fmangabar-00e5ff?style=for-the-badge&logo=anthropic&logoColor=white" alt="Agent Skill"></a>
   <a href="llms.txt"><img src="https://img.shields.io/badge/LLMs.txt-Supported-blueviolet?style=for-the-badge" alt="LLMs.txt Supported"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-4caf50?style=for-the-badge" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-6c5ce7?style=for-the-badge" alt="Cross Platform">
-  <img src="https://img.shields.io/badge/Sources-350%2B%20Extensions-ff7675?style=for-the-badge" alt="350+ Sources">
+  <img src="https://img.shields.io/badge/Sources-1%2C440%2B%20Extensions-ff7675?style=for-the-badge" alt="1,440+ Sources">
 </p>
 
 > 🌟 **Enjoying MangaBar?** Please consider giving us a **[Star on GitHub](https://github.com/j-a-y-e-s-h/mangabar)** to support development and help more developers discover it!
@@ -43,7 +43,7 @@
 
 ### 🌟 Why MangaBar?
 - 📖 **Embedded Dual-Docking**: Keep your File Explorer open on the left and dock MangaBar in the secondary right sidebar (`auxiliarybar`)—or vice versa with a single click.
-- 🚀 **350+ Sources Pre-Configured**: Instant access to the official Keiyoushi Extension Network including MangaDex, MangaKakalot, ComicK, Asura Scans, and more.
+- 🚀 **1,440+ Sources Pre-Configured**: Instant access to the official Keiyoushi Extension Network including MangaDex, MangaKakalot, ComicK, Asura Scans, and more.
 - 🔍 **Smooth Clamped Zoom & Pan (50% – 400%)**: Smooth `Ctrl + Wheel` or `Ctrl +/-` zoom with strict event isolation—never accidentally zoom your IDE editor fonts.
 - 💾 **Offline Downloads**: Download full chapters to your local drive for uninterrupted offline reading during commutes and flights.
 - ⌨️ **Global Hotkey (`Ctrl+Alt+M`)**: Instantly toggle your manga panel or full editor tab from anywhere in your IDE.
@@ -62,7 +62,7 @@ Dock MangaBar side-by-side with your active code files. Read continuously or sin
   </a>
 </p>
 
-### 2. Rich 350+ Source Extension Catalog
+### 2. Rich 1,440+ Source Extension Catalog
 One-click install from hundreds of community-maintained manga, manhwa, and comic extensions with automatic repository synchronization.
 
 <p align="center">
@@ -178,7 +178,7 @@ Customize MangaBar behavior in Settings (`Ctrl+,` or `Cmd+,` > search for `Manga
 **Yes.** MangaBar fully supports offline chapter downloads. Open any title from your favorite source, choose the chapters you want to download, and save them directly to your local drive. Chapters are stored locally in `~/.mangabar/data/downloads` so you can read anytime without internet access.
 
 ### 2. Which manga, manhwa & comic sources are supported?
-MangaBar comes pre-configured with the official **Keiyoushi Extension Repository**, giving you one-click access to over **350+ community-maintained sources**. Popular supported sources include **MangaDex**, **ComicK**, **MangaKakalot**, **Asura Scans**, **Flame Comics**, and numerous language-specific catalogs in English, Spanish, French, Portuguese, Indonesian, and more.
+MangaBar comes pre-configured with the official **Keiyoushi Extension Repository**, giving you one-click access to over **1,440+ community-maintained sources**. Popular supported sources include **MangaDex**, **ComicK**, **MangaKakalot**, **Asura Scans**, **Flame Comics**, and numerous language-specific catalogs in English, Spanish, French, Portuguese, Indonesian, and more.
 
 ### 3. Does zooming manga affect my VS Code editor zoom?
 **No.** MangaBar implements clamped zoom event isolation (`0.5x` to `4.0x`). Zooming in and out using `Ctrl + Mouse Wheel` or `Ctrl +/-` strictly modifies the manga page canvas without zooming your IDE workspace or editor text font.

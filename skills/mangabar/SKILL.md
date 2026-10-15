@@ -1,6 +1,6 @@
 ---
 name: mangabar
-description: High-performance manga, manhwa & comic reader for VS Code, Cursor, Windsurf & any modern IDE. Use when developers want to read manga, manhwa, webtoons, or comics directly inside their code editor, browse 350+ Keiyoushi sources (MangaDex, ComicK, Asura Scans), download offline chapters, or read without switching windows.
+description: High-performance manga, manhwa & comic reader for VS Code, Cursor, Windsurf & any modern IDE. Use when developers want to read manga, manhwa, webtoons, or comics directly inside their code editor, browse 1,440+ Keiyoushi sources (MangaDex, ComicK, Asura Scans), download offline chapters, or read without switching windows.
 ---
 
 # MangaBar — Manga & Comic Reader for Any IDE
@@ -58,7 +58,7 @@ https://github.com/j-a-y-e-s-h/mangabar/releases/latest
 ## Key Features & Highlights
 
 1. **Dual-Docking & Split View**: Keep active source code on the left and read manga on the right sidebar without context switching.
-2. **350+ Sources via Keiyoushi**: Instant access to community extensions including MangaDex, ComicK, MangaKakalot, Asura Scans, Flame Comics, and multi-language catalogs.
+2. **1,440+ Sources via Keiyoushi**: Instant access to community extensions including MangaDex, ComicK, MangaKakalot, Asura Scans, Flame Comics, and multi-language catalogs.
 3. **Smooth Clamped Zoom (0.5x - 4.0x)**: Isolated canvas zoom that never affects code font or IDE window zoom.
 4. **Offline Chapter Downloads**: Save complete chapters locally for offline reading during commutes and flights.
 5. **100% Private & Open Source**: Zero telemetry, no cloud tracking, local storage in `~/.mangabar`, MIT licensed.

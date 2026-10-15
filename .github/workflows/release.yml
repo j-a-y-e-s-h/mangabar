@@ -1,4 +1,4 @@
-name: Release & Publish to Open VSX
+name: Release & Publish to Stores
 
 on:
   release:
@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
-  publish-openvsx:
+  publish-stores:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -30,12 +30,26 @@ jobs:
       - name: Package VSIX
         run: npx @vscode/vsce package --no-dependencies
 
-      - name: Publish to Open VSX
+      - name: Publish to VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -n "$VSCE_PAT" ]; then
+            echo "Publishing to Visual Studio Code Marketplace..."
+            npx @vscode/vsce publish --packagePath mangabar-*.vsix -p "$VSCE_PAT" --no-dependencies
+            echo "Successfully published to VS Code Marketplace!"
+          else
+            echo "::warning::VSCE_PAT secret not configured in repository. Skipping automatic publish to VS Code Marketplace. Add VSCE_PAT to repository secrets to enable automatic publishing."
+          fi
+
+      - name: Publish to Open VSX Registry
         env:
           OPEN_VSX_TOKEN: ${{ secrets.OPEN_VSX_TOKEN || secrets.OVSX_PAT }}
         run: |
           if [ -n "$OPEN_VSX_TOKEN" ]; then
+            echo "Publishing to Open VSX Registry..."
             npx ovsx publish mangabar-*.vsix --pat "$OPEN_VSX_TOKEN"
+            echo "Successfully published to Open VSX Registry!"
           else
             echo "::warning::OPEN_VSX_TOKEN secret not configured in repository. Skipping automatic publish to Open VSX. Add OPEN_VSX_TOKEN to repository secrets to enable automatic publishing."
           fi

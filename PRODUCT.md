@@ -22,7 +22,7 @@ MangaBar (also searched as Manga Bar) is an open-source, high-performance manga 
 
 Unlike web browsers that introduce ad popups, battery drain, and distracting context switches, MangaBar runs natively inside VS Code & Cursor with:
 - Dual-docking (split-screen beside code or full-tab view).
-- 350+ community extension sources via Keiyoushi.
+- 1,440+ community extension sources via Keiyoushi.
 - Full chapter downloads stored locally on disk (`~/.mangabar`) for offline reading.
 - Clamped zoom isolation (0.5x - 4.0x) that never affects code editor font size.
 - 100% free, MIT licensed, zero ads, zero telemetry, and zero tracking.

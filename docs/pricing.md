@@ -9,7 +9,7 @@
 - **Telemetry & Tracking:** Zero (100% local, no analytics, no user tracking)
 - **Storage:** Local file system only (`~/.mangabar`)
 - **Features Included:**
-  - Unlimited reading from 350+ community manga sources (Keiyoushi catalog)
+  - Unlimited reading from 1,440+ community manga sources (Keiyoushi catalog)
   - Unlimited offline chapter downloads
   - Dual-sidebar docking (Left Activity Bar or Right Auxiliary Bar)
   - Full-screen & full-editor tab reader (`Ctrl+Alt+M`)

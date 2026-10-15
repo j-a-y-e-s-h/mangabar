@@ -35,7 +35,7 @@ MangaBar is engineered with a modular, performance-oriented architecture:
 ---
 
 ## 4. Source Catalog & Extension Ecosystem
-MangaBar integrates with the official **Keiyoushi Extension Repository** with 350+ community-maintained extensions:
+MangaBar integrates with the official **Keiyoushi Extension Repository** with 1,440+ community-maintained extensions:
 - **Major Catalogs:** MangaDex, ComicK, MangaKakalot, MangaClash, Asura Scans, Flame Comics, Reaper Scans.
 - **Multi-language Support:** English, Spanish, Portuguese, French, Indonesian, Italian, German, Russian, Arabic, Japanese, Chinese.
 - **Automatic Extension Updates:** One-click install, update, and deletion of source extensions directly from the UI.
@@ -77,7 +77,7 @@ MangaBar integrates with the official **Keiyoushi Extension Repository** with 35
 | :--- | :---: | :---: | :---: |
 | **Context Switching** | **Zero (Inside IDE)** | High (Alt+Tab distraction) | Extreme (Separate device or emulator) |
 | **RAM Footprint** | **<25 MB idle** | 500 MB – 2 GB (per Chrome tab) | 1 GB – 4 GB (Emulator overhead) |
-| **Source Catalog** | **350+ via Keiyoushi** | Limited to single sites | 350+ via Keiyoushi |
+| **Source Catalog** | **1,440+ via Keiyoushi** | Limited to single sites | 1,440+ via Keiyoushi |
 | **Offline Downloads** | **Yes (`~/.mangabar`)** | Rare / requires cache hacks | Yes |
 | **Clamped Zoom Isolation** | **Yes (Protects IDE font)** | No (Zooms entire browser window) | Mobile-only touch gestures |
 | **Dual Docking (Left/Right)** | **Yes (Activity/Auxiliary)** | No | No |
