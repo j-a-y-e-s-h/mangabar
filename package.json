@@ -2,7 +2,7 @@
   "name": "mangabar",
   "displayName": "MangaBar — Manga, Manhwa & Comic Reader for Any IDE (VS Code, Cursor & More)",
   "description": "Read manga, manhwa, webtoons, and comics directly in any IDE (VS Code, Cursor, Windsurf & VSCodium). Offline reader with 350+ sources (Keiyoushi, MangaDex), offline downloads, dual-side docking, and smooth zoom & pan.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "publisher": "j-a-y-e-s-h",
   "license": "MIT",
   "homepage": "https://github.com/j-a-y-e-s-h/mangabar#readme",
@@ -44,7 +44,7 @@
   ],
   "badges": [
     {
-      "url": "https://img.shields.io/badge/MangaBar-v0.2.2-00bcd4",
+      "url": "https://img.shields.io/badge/MangaBar-v0.2.3-00bcd4",
       "href": "https://github.com/j-a-y-e-s-h/mangabar",
       "description": "MangaBar Reader"
     },
@@ -70,6 +70,7 @@
     "onCommand:mangabar.restartServer",
     "onCommand:mangabar.reloadView",
     "onCommand:mangabar.configureStorage",
+    "onCommand:mangabar.configureSleepTimeout",
     "onCommand:mangabar.openWebBrowser"
   ],
   "contributes": {
@@ -145,6 +146,12 @@
         "title": "Change Storage Location",
         "category": "MangaBar",
         "icon": "$(folder)"
+      },
+      {
+        "command": "mangabar.configureSleepTimeout",
+        "title": "Configure Auto-Sleep Timeout",
+        "category": "MangaBar",
+        "icon": "$(history)"
       },
       {
         "command": "mangabar.openWebBrowser",
@@ -240,6 +247,12 @@
           "type": "string",
           "default": "",
           "description": "Custom URL or mirror to download the MangaBar Server Engine binary"
+        },
+        "mangabar.idleSleepTimeout": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0,
+          "description": "Minutes of inactivity before MangaBar background server automatically sleeps to conserve RAM. Set to 0 to disable auto-sleep. Server will never sleep while the Reader tab or Sidebar is actively open."
         }
       }
     }
@@ -251,7 +264,7 @@
     "patch-webui": "node scripts/patch-webui.js",
     "package": "npx @vscode/vsce package --no-dependencies",
     "publish:marketplace": "npx @vscode/vsce publish --no-dependencies",
-    "publish:openvsx": "npx ovsx publish mangabar-0.2.1.vsix"
+    "publish:openvsx": "npx ovsx publish mangabar-*.vsix"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",

@@ -112,19 +112,46 @@ export function getReaderEnhancerScript(): string {
     } catch {}
   }
 
+  function isExcludedFromScrubbing(el) {
+    if (!el) return false;
+    if (el.closest) {
+      if (
+        el.closest(
+          '.MuiAvatar-root, [class*="Avatar"], .MuiListItemAvatar-root, [class*="Cover"], [class*="cover"], [class*="extension"], [class*="Extension"], [class*="source"], [class*="Source"], [class*="manga"], [class*="Manga"]'
+        )
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function scrubImagesAndLogos() {
     try {
-      const imgs = document.querySelectorAll('img, svg');
+      const imgs = document.querySelectorAll('img');
       imgs.forEach((img) => {
         const src = img.getAttribute('src') || '';
+        // 1. Strict guard: NEVER touch extension icons, source icons, manga covers, chapters, or avatars
+        if (
+          !src ||
+          src.includes('/api/v1/') ||
+          src.includes('/extension/') ||
+          src.includes('/source/') ||
+          src.includes('/manga/') ||
+          src.includes('/cover') ||
+          src.includes('/icon/') ||
+          isExcludedFromScrubbing(img)
+        ) {
+          return;
+        }
+
+        // 2. Only scrub actual standalone app brand logos (e.g. suwayomi-logo.svg, tachidesk-logo.png)
         const alt = img.getAttribute('alt') || '';
         if (
-          /favicon|logo|suwayomi|mihon|tachiyomi/i.test(src) ||
-          /favicon|logo|suwayomi|mihon|tachiyomi/i.test(alt)
+          (/\b(suwayomi|tachidesk)\b/i.test(src) && !src.includes('extension')) ||
+          (/\b(suwayomi|tachidesk)\b/i.test(alt) && !alt.includes('extension'))
         ) {
-          if (img.tagName.toLowerCase() === 'img') {
-            img.src = '/__mangabar_icon.svg';
-          }
+          img.src = '/__mangabar_icon.svg';
           img.setAttribute('alt', 'MangaBar');
         }
       });
@@ -137,9 +164,7 @@ export function getReaderEnhancerScript(): string {
       if (
         node.nodeValue &&
         (/Suwayomi/i.test(node.nodeValue) ||
-          /Tachidesk/i.test(node.nodeValue) ||
-          /Tachiyomi/i.test(node.nodeValue) ||
-          /Mihon/i.test(node.nodeValue))
+          /Tachidesk/i.test(node.nodeValue))
       ) {
         node.nodeValue = scrubBrandText(node.nodeValue);
       }
@@ -147,11 +172,15 @@ export function getReaderEnhancerScript(): string {
     }
     if (node.nodeType === 1 /* Node.ELEMENT_NODE */) {
       const el = node;
+      // Skip extensions, sources, manga lists and cards from recursive DOM walking
+      if (isExcludedFromScrubbing(el)) {
+        return;
+      }
       ['title', 'alt', 'aria-label', 'placeholder'].forEach((attr) => {
         const val = el.getAttribute && el.getAttribute(attr);
         if (
           val &&
-          (/Suwayomi/i.test(val) || /Tachidesk/i.test(val) || /Tachiyomi/i.test(val) || /Mihon/i.test(val))
+          (/Suwayomi/i.test(val) || /Tachidesk/i.test(val))
         ) {
           el.setAttribute(attr, scrubBrandText(val));
         }
@@ -177,7 +206,14 @@ export function getReaderEnhancerScript(): string {
     }
     ensureMangaBarFavicon();
     scrubImagesAndLogos();
-    if (document.body) {
+
+    // High-performance shell selector targeting: bypasses walking the 1440+ extension item cards
+    const shellContainers = document.querySelectorAll(
+      'header, nav, .MuiAppBar-root, .MuiDrawer-root, [role="dialog"], .MuiDialog-root'
+    );
+    if (shellContainers && shellContainers.length > 0) {
+      shellContainers.forEach((container) => scrubNode(container));
+    } else if (document.body) {
       scrubNode(document.body);
     }
   }
@@ -326,6 +362,257 @@ export function getReaderEnhancerScript(): string {
     },
     false
   );
+
+  /* ──────────────────────────────────────────────────────────
+   * 1B. GLOBAL MANGA SEARCH & EMPTY LIBRARY DISCOVERY
+   * ────────────────────────────────────────────────────────── */
+  const GLOBAL_SEARCH_PATH =
+    'M19.3 16.9c.4-.7.7-1.5.7-2.4 0-2.5-2-4.5-4.5-4.5S11 12 11 14.5s2 4.5 4.5 4.5c.9 0 1.7-.3 2.4-.7l3.2 3.2 1.4-1.4zm-3.8.1c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5M12 20v2C6.48 22 2 17.52 2 12S6.48 2 12 2c4.84 0 8.87 3.44 9.8 8h-2.07c-.64-2.46-2.4-4.47-4.73-5.41V5c0 1.1-.9 2-2 2h-2v2c0 .55-.45 1-1 1H8v2h2v3H9l-4.79-4.79C4.08 10.79 4 11.38 4 12c0 4.41 3.59 8 8 8';
+
+  const GLOBAL_SEARCH_SVG =
+    '<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium" focusable="false" aria-hidden="true" viewBox="0 0 24 24"><path d="' +
+    GLOBAL_SEARCH_PATH +
+    '"></path></svg>';
+
+  function ensureSearchEnhancerStyles() {
+    if (document.getElementById('mangabar-search-enhancer-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'mangabar-search-enhancer-styles';
+    style.textContent = \`
+      .mangabar-library-search-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 50% !important;
+        padding: 8px !important;
+        color: inherit !important;
+        background: transparent !important;
+        border: none !important;
+        cursor: pointer !important;
+        transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms ease, color 150ms ease !important;
+        user-select: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+        flex-shrink: 0 !important;
+        margin-left: auto !important;
+      }
+      .mangabar-library-search-btn:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        transform: scale(1.08) !important;
+        color: #38bdf8 !important;
+      }
+      .mangabar-library-search-btn:active {
+        transform: scale(0.92) !important;
+      }
+      .mangabar-library-search-btn svg {
+        fill: currentColor !important;
+        width: 24px !important;
+        height: 24px !important;
+      }
+
+      .mangabar-empty-card {
+        margin-top: 22px !important;
+        padding: 18px 22px !important;
+        background: linear-gradient(145deg, rgba(30, 30, 38, 0.85), rgba(18, 18, 24, 0.94)) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 16px !important;
+        max-width: 360px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 12px !important;
+        pointer-events: auto !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 1px rgba(255, 255, 255, 0.15) inset !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        animation: mangabarFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      @keyframes mangabarFadeUp {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .mangabar-empty-subtitle {
+        font-size: 12px !important;
+        color: rgba(255, 255, 255, 0.75) !important;
+        line-height: 1.45 !important;
+        text-align: center !important;
+        max-width: 300px !important;
+        margin: 0 !important;
+        pointer-events: auto !important;
+      }
+      .mangabar-empty-actions {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 10px !important;
+        width: 100% !important;
+        flex-wrap: wrap !important;
+        pointer-events: auto !important;
+      }
+      .mangabar-empty-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        padding: 8px 16px !important;
+        border-radius: 8px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        border: none !important;
+        outline: none !important;
+        letter-spacing: 0.2px !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        user-select: none !important;
+        text-decoration: none !important;
+        pointer-events: auto !important;
+      }
+      .mangabar-empty-btn svg {
+        width: 17px !important;
+        height: 17px !important;
+        fill: currentColor !important;
+      }
+      .mangabar-empty-btn-primary {
+        background: linear-gradient(135deg, #007acc, #0284c7) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 10px rgba(0, 122, 204, 0.45) !important;
+      }
+      .mangabar-empty-btn-primary:hover {
+        background: linear-gradient(135deg, #0088e0, #0396e6) !important;
+        box-shadow: 0 4px 18px rgba(56, 189, 248, 0.55) !important;
+        transform: translateY(-2px) scale(1.02) !important;
+      }
+      .mangabar-empty-btn-primary:active {
+        transform: translateY(0) scale(0.97) !important;
+      }
+      .mangabar-empty-btn-secondary {
+        background: rgba(255, 255, 255, 0.06) !important;
+        color: rgba(255, 255, 255, 0.88) !important;
+        border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      }
+      .mangabar-empty-btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.12) !important;
+        border-color: rgba(56, 189, 248, 0.6) !important;
+        color: #38bdf8 !important;
+        transform: translateY(-2px) scale(1.02) !important;
+      }
+      .mangabar-empty-btn-secondary:active {
+        transform: translateY(0) scale(0.97) !important;
+      }
+    \`;
+    document.head.appendChild(style);
+  }
+
+  function ensureLibrarySearchButton() {
+    ensureSearchEnhancerStyles();
+
+    const p = getPathAndHash();
+    const isLibraryRoute = (p === '/' || p === '/#' || p === '#/' || p === '' || p.startsWith('/?') || p.startsWith('/#?'));
+    const appBar = document.querySelector('header.MuiAppBar-root, [class*="MuiAppBar-root"]');
+    if (!appBar) return;
+
+    const titleEl = appBar.querySelector('h1, h2, [class*="Typography-h5"], [class*="Typography-h6"]');
+    const titleText = (titleEl && titleEl.textContent ? titleEl.textContent.trim().toLowerCase() : '');
+    const isLibraryTitle = titleText === 'library';
+
+    // If on Browse, Browse already has its own native button, so remove our injected one
+    if (titleText === 'browse' || p.includes('/sources')) {
+      const existing = appBar.querySelector('.mangabar-library-search-btn');
+      if (existing) existing.remove();
+      return;
+    }
+
+    if (!isLibraryRoute && !isLibraryTitle) {
+      const existing = appBar.querySelector('.mangabar-library-search-btn');
+      if (existing) existing.remove();
+      return;
+    }
+
+    if (appBar.querySelector('.mangabar-library-search-btn')) return;
+
+    const toolbar = appBar.querySelector('.MuiToolbar-root, [class*="MuiToolbar-root"]') || appBar;
+
+    const btn = document.createElement('button');
+    btn.className = 'MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit MuiIconButton-sizeMedium mangabar-library-search-btn';
+    btn.setAttribute('type', 'button');
+    btn.setAttribute('title', 'Global Search (Search all sources)');
+    btn.setAttribute('aria-label', 'Global Search');
+    btn.innerHTML = GLOBAL_SEARCH_SVG;
+
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigateTo('/sources/all/search');
+    };
+
+    if (titleEl && titleEl.parentElement && titleEl.parentElement !== toolbar) {
+      titleEl.parentElement.appendChild(btn);
+    } else {
+      toolbar.appendChild(btn);
+    }
+  }
+
+  function ensureEmptyLibraryActionCard() {
+    ensureSearchEnhancerStyles();
+
+    const headings = Array.from(document.querySelectorAll('h5, h6, p, div, [class*="Typography-h5"], [class*="Typography-h6"]'));
+    const emptyMsgEl = headings.find((el) => {
+      if (el.classList.contains('mangabar-empty-subtitle')) return false;
+      const text = (el.textContent || '').trim().toLowerCase();
+      return text.includes('your library is empty') || text.includes('library is empty');
+    });
+
+    if (!emptyMsgEl) {
+      const existing = document.querySelector('.mangabar-empty-card');
+      if (existing) existing.remove();
+      return;
+    }
+
+    const container = emptyMsgEl.parentElement;
+    if (!container) return;
+
+    if (container.querySelector('.mangabar-empty-card')) return;
+
+    const card = document.createElement('div');
+    card.className = 'mangabar-empty-card';
+    card.innerHTML =
+      '<p class="mangabar-empty-subtitle">Discover and read manga across all your installed sources & extensions</p>' +
+      '<div class="mangabar-empty-actions">' +
+        '<button class="mangabar-empty-btn mangabar-empty-btn-primary" id="btnEmptySearch">' +
+          GLOBAL_SEARCH_SVG +
+          '<span>Search Manga</span>' +
+        '</button>' +
+        '<button class="mangabar-empty-btn mangabar-empty-btn-secondary" id="btnEmptySources">' +
+          '<svg class="MuiSvgIcon-root" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>' +
+          '<span>Browse Sources</span>' +
+        '</button>' +
+      '</div>';
+
+    const searchBtn = card.querySelector('#btnEmptySearch');
+    if (searchBtn) {
+      searchBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigateTo('/sources/all/search');
+      };
+    }
+
+    const sourcesBtn = card.querySelector('#btnEmptySources');
+    if (sourcesBtn) {
+      sourcesBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigateTo('/sources');
+      };
+    }
+
+    if (emptyMsgEl.nextSibling) {
+      container.insertBefore(card, emptyMsgEl.nextSibling);
+    } else {
+      container.appendChild(card);
+    }
+  }
 
   /* ──────────────────────────────────────────────────────────
    * 2. SAFE CLAMPED CTRL-ZOOM (50% - 400%) & PAN
@@ -603,6 +890,10 @@ export function getReaderEnhancerScript(): string {
       }
     } else if (e.key === 'h' || e.key === 'H') {
       navigateTo('/');
+    } else if (e.key === '/' || e.key === 's' || e.key === 'S') {
+      if (!isReaderView()) {
+        navigateTo('/sources/all/search');
+      }
     } else if (e.key === 'Escape') {
       if (isReaderView()) {
         closeReaderMenu();
@@ -645,6 +936,9 @@ export function getReaderEnhancerScript(): string {
         break;
       case 'home':
         navigateTo('/');
+        break;
+      case 'search':
+        navigateTo('/sources/all/search');
         break;
       case 'zoomIn':
         applyZoom(currentZoom + 0.25);
@@ -699,6 +993,8 @@ export function getReaderEnhancerScript(): string {
       resetZoom();
     }
     ensureFloatingExitButton();
+    ensureLibrarySearchButton();
+    ensureEmptyLibraryActionCard();
     broadcastState();
   }
 
@@ -718,13 +1014,29 @@ export function getReaderEnhancerScript(): string {
 
   window.addEventListener('popstate', checkState);
 
+  let checkScheduled = false;
+  function scheduleCheck() {
+    if (checkScheduled) return;
+    checkScheduled = true;
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        checkScheduled = false;
+        checkState();
+      });
+    } else {
+      setTimeout(() => {
+        checkScheduled = false;
+        checkState();
+      }, 50);
+    }
+  }
+
   const observer = new MutationObserver(() => {
-    scrubDOMBranding();
-    checkState();
+    scheduleCheck();
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  setInterval(checkState, 700);
+  setInterval(scheduleCheck, 1500);
   checkState();
 })();
 `;

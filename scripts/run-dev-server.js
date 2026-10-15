@@ -12,8 +12,15 @@ const serverPort = 4567;
 console.log('[DevServer] Launching MangaBar server engine on 127.0.0.1:' + serverPort + '...');
 
 const javaArgs = [
-  '-Xmx512m',
-  '-Xms64m',
+  '-Xmx192m',
+  '-Xms32m',
+  '-XX:+UseSerialGC',
+  '-XX:TieredStopAtLevel=1',
+  '-XX:MinHeapFreeRatio=10',
+  '-XX:MaxHeapFreeRatio=20',
+  '-XX:MaxMetaspaceSize=96m',
+  '-XX:+UseCompressedOops',
+  '-XX:+UseCompressedClassPointers',
   '--add-opens=java.base/java.lang=ALL-UNNAMED',
   '--add-opens=java.base/java.util=ALL-UNNAMED',
   '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
@@ -26,7 +33,9 @@ const javaArgs = [
   '-Dsuwayomi.tachidesk.config.server.systemTrayEnabled=false',
   '-Dsuwayomi.tachidesk.config.server.kcefEnabled=false',
   '-Dsuwayomi.tachidesk.config.server.webUIInterface=BROWSER',
+  '-Dsuwayomi.tachidesk.config.server.webUIChannel=BUNDLED',
   '-Dsuwayomi.tachidesk.config.server.webUIUpdateCheckInterval=0.0',
+  '-Dsuwayomi.tachidesk.config.server.globalUpdateInterval=0.0',
   '-cp',
   `${path.join(root, 'bin', 'classes')};${jarPath}`,
   'suwayomi.tachidesk.MainKt',

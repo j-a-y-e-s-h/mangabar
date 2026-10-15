@@ -12,8 +12,15 @@ async function runLifecycleTest() {
 
   console.log('[Test] Spawning MangaBar server process...');
   const javaArgs = [
-    '-Xmx512m',
-    '-Xms64m',
+    '-Xmx192m',
+    '-Xms32m',
+    '-XX:+UseSerialGC',
+    '-XX:TieredStopAtLevel=1',
+    '-XX:MinHeapFreeRatio=10',
+    '-XX:MaxHeapFreeRatio=20',
+    '-XX:MaxMetaspaceSize=96m',
+    '-XX:+UseCompressedOops',
+    '-XX:+UseCompressedClassPointers',
     '--add-opens=java.base/java.lang=ALL-UNNAMED',
     '--add-opens=java.base/java.util=ALL-UNNAMED',
     '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
@@ -26,7 +33,9 @@ async function runLifecycleTest() {
     '-Dsuwayomi.tachidesk.config.server.systemTrayEnabled=false',
     '-Dsuwayomi.tachidesk.config.server.kcefEnabled=false',
     '-Dsuwayomi.tachidesk.config.server.webUIInterface=BROWSER',
+    '-Dsuwayomi.tachidesk.config.server.webUIChannel=BUNDLED',
     '-Dsuwayomi.tachidesk.config.server.webUIUpdateCheckInterval=0.0',
+    '-Dsuwayomi.tachidesk.config.server.globalUpdateInterval=0.0',
     '-cp',
     `${path.join(root, 'bin', 'classes')};${jarPath}`,
     'suwayomi.tachidesk.MainKt',
@@ -120,9 +129,10 @@ async function runLifecycleTest() {
   for (let i = 0; i < 30; i++) {
     try {
       const rootRes = await fetch(`http://127.0.0.1:${port}/`);
-      if (rootRes.ok) break;
+      const body = await rootRes.text();
+      if (rootRes.ok && body.includes('</head>')) break;
     } catch (_) {}
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 1000));
   }
 
   const proxyRes = await fetch(`http://127.0.0.1:${proxyPort}/`);

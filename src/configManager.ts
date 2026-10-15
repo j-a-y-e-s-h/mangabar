@@ -116,6 +116,15 @@ export class ConfigManager {
     await config.update('sideBarLocation', location, vscode.ConfigurationTarget.Global);
   }
 
+  public getIdleSleepTimeoutMinutes(): number {
+    return this.getConfig().get<number>('idleSleepTimeout', 5);
+  }
+
+  public async setIdleSleepTimeoutMinutes(minutes: number): Promise<void> {
+    const config = this.getConfig();
+    await config.update('idleSleepTimeout', minutes, vscode.ConfigurationTarget.Global);
+  }
+
   /**
    * Pre-seeds server.conf with port, downloadDir, and extension repository.
    */
@@ -176,7 +185,9 @@ export class ConfigManager {
       'server.systemTrayEnabled': 'false',
       'server.kcefEnabled': 'false',
       'server.webUIInterface': '"BROWSER"',
+      'server.webUIChannel': '"BUNDLED"',
       'server.webUIUpdateCheckInterval': '0.0',
+      'server.globalUpdateInterval': '0.0',
       'server.downloadsPath': `"${safeDownloadDir}"`,
       'server.extensionStores': `["${repoUrl}"]`,
     };

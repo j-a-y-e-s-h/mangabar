@@ -75,6 +75,9 @@ export class ReaderPanel {
               }
             );
             break;
+          case 'showLogs':
+            this.serverManager.showOutputChannel();
+            break;
           case 'refresh':
             const isHealthy = await this.serverManager.isServerHealthy(this.serverManager.getPort());
             if (!isHealthy) {
@@ -97,6 +100,29 @@ export class ReaderPanel {
     this.serverManager.onDidChangeState(() => {
       this.update();
     }, null, this.disposables);
+
+    this.serverManager.onDidChangeStartupProgress((progress) => {
+      this.panel.webview.postMessage({ type: 'startupProgress', progress });
+    }, null, this.disposables);
+
+    const activeDisposable = this.serverManager.registerActiveViewChecker(() => {
+      return Boolean(ReaderPanel.currentPanel && ReaderPanel.currentPanel.panel.visible);
+    });
+    this.disposables.push(activeDisposable);
+
+    this.panel.onDidChangeViewState(
+      (e) => {
+        if (e.webviewPanel.visible) {
+          this.serverManager.resetIdleTimer();
+        }
+      },
+      null,
+      this.disposables
+    );
+  }
+
+  public isVisible(): boolean {
+    return this.panel.visible;
   }
 
   public update() {
@@ -107,10 +133,18 @@ export class ReaderPanel {
 
     const isDark = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
     const bgColor = isDark ? '#141414' : '#fafafa';
+    const cardBg = isDark ? '#1e1e24' : '#ffffff';
     const toolbarBg = isDark ? '#1e1e1e' : '#f3f3f3';
     const borderColor = isDark ? '#333338' : '#e0e0e0';
     const textColor = isDark ? '#cccccc' : '#333333';
     const urlBarBg = isDark ? '#2a2a2e' : '#ffffff';
+
+    const progress = this.serverManager.getStartupProgress();
+    const currentStep = progress?.step || 1;
+    const percent = progress?.percent || (currentStep * 25);
+    const title = progress?.title || 'Starting Server Engine...';
+    const detail = progress?.detail || 'Initializing MangaBar environment...';
+    const dl = progress?.downloadInfo;
 
     this.panel.webview.html = `<!DOCTYPE html>
 <html lang="en">
@@ -349,6 +383,207 @@ export class ReaderPanel {
       max-width: 340px;
       line-height: 1.5;
     }
+
+    /* ── 4-Step Startup Progress Card ── */
+    .startup-card {
+      padding: 32px 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 16px;
+      max-width: 360px;
+      margin: 0 auto;
+      user-select: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .startup-brand-cluster {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px;
+      height: 52px;
+    }
+    .startup-brand-icon {
+      width: 42px;
+      height: 42px;
+      color: var(--vscode-button-background, #007acc);
+      animation: pulseGlow 2.2s infinite ease-in-out;
+    }
+    .startup-ring {
+      position: absolute;
+      inset: -4px;
+      border: 2px dashed rgba(56, 189, 248, 0.45);
+      border-radius: 50%;
+      animation: spin 10s linear infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+    .startup-title-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .startup-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+    .startup-detail {
+      font-size: 12px;
+      opacity: 0.75;
+      line-height: 1.4;
+      min-height: 16px;
+    }
+    .startup-progress-track {
+      width: 100%;
+      height: 6px;
+      background: ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'};
+      border-radius: 9999px;
+      overflow: hidden;
+      border: 1px solid ${borderColor};
+      position: relative;
+    }
+    .startup-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #007acc, #38bdf8);
+      border-radius: 9999px;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+    }
+    .download-pill {
+      font-size: 11px;
+      font-weight: 600;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      padding: 3px 10px;
+      border-radius: 12px;
+      display: none;
+      align-items: center;
+      gap: 5px;
+    }
+    .startup-stepper {
+      width: 100%;
+      background: ${cardBg};
+      border: 1px solid ${borderColor};
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+    }
+    .step-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+    .step-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-indicator {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+    .step-row.completed .step-indicator { color: #10b981; }
+    .step-row.active .step-indicator { color: #38bdf8; }
+    .step-row.pending .step-indicator { color: ${isDark ? '#6b7280' : '#9ca3af'}; opacity: 0.6; }
+    .step-status-tag {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .step-row.completed .step-status-tag {
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .step-row.active .step-status-tag {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+    }
+    .step-row.pending .step-status-tag {
+      color: ${isDark ? '#6b7280' : '#9ca3af'};
+      opacity: 0.6;
+    }
+    .step-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .startup-reassurance {
+      font-size: 11px;
+      opacity: 0.75;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'};
+      border: 1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
+      padding: 6px 10px;
+      border-radius: 6px;
+      line-height: 1.35;
+      text-align: left;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .startup-reassurance svg {
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0;
+    }
+    .icon-svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+      flex-shrink: 0;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .icon-svg.spin {
+      animation: spin 1s linear infinite;
+    }
+    button.secondary {
+      background: var(--vscode-button-secondaryBackground, #303036);
+      color: var(--vscode-button-secondaryForeground, #ffffff);
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.18s ease;
+    }
+    button.secondary:hover {
+      background: var(--vscode-button-secondaryHoverBackground, #3f4048);
+    }
   </style>
 </head>
 <body>
@@ -364,6 +599,9 @@ export class ReaderPanel {
     </button>
     <button class="nav-btn" id="btnHome" title="Library Home (H)" onclick="goHome()">
       <svg viewBox="0 0 16 16"><path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 2 7.5V14a1 1 0 0 0 1 1h2.5a.5.5 0 0 0 .5-.5V11h4v3.5a.5.5 0 0 0 .5.5H13a1 1 0 0 0 1-1V7.5a.5.5 0 0 0 .354-.854l-6-6z"/></svg>
+    </button>
+    <button class="nav-btn" id="btnSearch" title="Search Manga Across All Sources (/ or S)" onclick="goSearch()">
+      <svg viewBox="0 0 24 24"><path d="M19.3 16.9c.4-.7.7-1.5.7-2.4 0-2.5-2-4.5-4.5-4.5S11 12 11 14.5s2 4.5 4.5 4.5c.9 0 1.7-.3 2.4-.7l3.2 3.2 1.4-1.4zm-3.8.1c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5M12 20v2C6.48 22 2 17.52 2 12S6.48 2 12 2c4.84 0 8.87 3.44 9.8 8h-2.07c-.64-2.46-2.4-4.47-4.73-5.41V5c0 1.1-.9 2-2 2h-2v2c0 .55-.45 1-1 1H8v2h2v3H9l-4.79-4.79C4.08 10.79 4 11.38 4 12c0 4.41 3.59 8 8 8"/></svg>
     </button>
     <button class="nav-btn" id="btnRefresh" title="Refresh View" onclick="refreshPage()">
       <svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
@@ -411,23 +649,106 @@ export class ReaderPanel {
       <iframe id="readerFrame" src="${serverUrl}" allow="clipboard-read; clipboard-write; fullscreen" onload="onFrameLoaded()"></iframe>
     `
       : state === 'STARTING'
-      ? `<div class="offline">
-          <svg class="loading-spinner" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>
-          <h2>MangaBar Server is Starting...</h2>
-          <p>Initializing local manga server on port ${port}. Please wait a moment...</p>
+      ? `
+        <div class="startup-card">
+          <div class="startup-brand-cluster">
+            <svg class="startup-brand-icon" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.492-3.287.81V2.828zm7.5 9.605c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v-9.92c-.917-.318-2.107-.69-3.287-.81-1.094-.11-2.278-.037-3.213.493v9.746zM0 2.25A1.25 1.25 0 0 1 1.25 1c1.55 0 3.05.45 4.75 1.05C7.25 2.5 8 3 8 3s.75-.5 2-.95c1.7-.6 3.2-1.05 4.75-1.05A1.25 1.25 0 0 1 16 2.25v10.5A1.25 1.25 0 0 1 14.75 14c-1.4 0-2.8-.4-4.25-.9-1-.35-1.5-.6-2.5-.6s-1.5.25-2.5.6c-1.45.5-2.85.9-4.25.9A1.25 1.25 0 0 1 0 12.75V2.25z"/>
+            </svg>
+            <div class="startup-ring"></div>
+          </div>
+
+          <div class="startup-title-stack">
+            <div class="startup-title" id="startupTitle">${title}</div>
+            <div class="startup-detail" id="startupDetail">${detail}</div>
+          </div>
+
+          <div class="startup-progress-track">
+            <div class="startup-progress-fill" id="startupBarFill" style="width: ${percent}%;"></div>
+          </div>
+
+          <div class="download-pill" id="startupDownloadBadge" style="${dl ? 'display:inline-flex;' : ''}">
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M.5 9.9a.75.75 0 0 1 .75.75v2.85c0 .414.336.75.75.75h12a.75.75 0 0 0 .75-.75V10.65a.75.75 0 0 1 1.5 0v2.85A2.25 2.25 0 0 1 14 15.75H2A2.25 2.25 0 0 1-.25 13.5V10.65A.75.75 0 0 1 .5 9.9z"/><path d="M7.47 10.53a.75.75 0 0 0 1.06 0l3-3a.75.75 0 0 0-1.06-1.06L8.75 8.19V1.75a.75.75 0 0 0-1.5 0v6.44L5.53 6.47a.75.75 0 0 0-1.06 1.06l3 3z"/></svg>
+            <span id="startupDownloadText">${dl ? `${dl.downloadedMB} MB / ${dl.totalMB} MB (${dl.percent}%)` : ''}</span>
+          </div>
+
+          <div class="startup-stepper">
+            <div class="step-row ${currentStep > 1 ? 'completed' : currentStep === 1 ? 'active' : 'pending'}" id="stepRow1">
+              <div class="step-left">
+                <span class="step-indicator" id="stepIcon1">
+                  ${currentStep > 1 ? '<svg class="icon-svg" viewBox="0 0 16 16"><path fill="currentColor" d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>' : currentStep === 1 ? '<svg class="icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>' : '<span class="step-dot"></span>'}
+                </span>
+                <span>Java 21 Runtime</span>
+              </div>
+              <span class="step-status-tag" id="stepStatus1">${currentStep > 1 ? 'Ready' : currentStep === 1 ? 'Active' : 'Pending'}</span>
+            </div>
+
+            <div class="step-row ${currentStep > 2 ? 'completed' : currentStep === 2 ? 'active' : 'pending'}" id="stepRow2">
+              <div class="step-left">
+                <span class="step-indicator" id="stepIcon2">
+                  ${currentStep > 2 ? '<svg class="icon-svg" viewBox="0 0 16 16"><path fill="currentColor" d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>' : currentStep === 2 ? '<svg class="icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>' : '<span class="step-dot"></span>'}
+                </span>
+                <span>Server Engine Binary</span>
+              </div>
+              <span class="step-status-tag" id="stepStatus2">${currentStep > 2 ? 'Ready' : currentStep === 2 ? 'Active' : 'Pending'}</span>
+            </div>
+
+            <div class="step-row ${currentStep > 3 ? 'completed' : currentStep === 3 ? 'active' : 'pending'}" id="stepRow3">
+              <div class="step-left">
+                <span class="step-indicator" id="stepIcon3">
+                  ${currentStep > 3 ? '<svg class="icon-svg" viewBox="0 0 16 16"><path fill="currentColor" d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>' : currentStep === 3 ? '<svg class="icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>' : '<span class="step-dot"></span>'}
+                </span>
+                <span>Database & Cache</span>
+              </div>
+              <span class="step-status-tag" id="stepStatus3">${currentStep > 3 ? 'Ready' : currentStep === 3 ? 'Active' : 'Pending'}</span>
+            </div>
+
+            <div class="step-row ${currentStep >= 4 ? (percent >= 100 ? 'completed' : 'active') : 'pending'}" id="stepRow4">
+              <div class="step-left">
+                <span class="step-indicator" id="stepIcon4">
+                  ${currentStep >= 4 && percent >= 100 ? '<svg class="icon-svg" viewBox="0 0 16 16"><path fill="currentColor" d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>' : currentStep === 4 ? '<svg class="icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>' : '<span class="step-dot"></span>'}
+                </span>
+                <span>Web Reader UI</span>
+              </div>
+              <span class="step-status-tag" id="stepStatus4">${currentStep >= 4 && percent >= 100 ? 'Ready' : currentStep === 4 ? 'Active' : 'Pending'}</span>
+            </div>
+          </div>
+
+          <div class="startup-reassurance">
+            <svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm9-3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-.25 3.75a.75.75 0 0 0-1.5 0v3.5a.75.75 0 0 0 1.5 0v-3.5z"/></svg>
+            <span>First-time setup only. Future starts will be instant.</span>
+          </div>
+
+          <button class="secondary" onclick="showLogs()">
+            <svg class="icon-svg" viewBox="0 0 16 16"><path d="M14.5 3H1.5A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 14.5 3zm.5 8.5a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7zM3 6h2v1H3V6zm0 2h5v1H3V8zm0 2h3v1H3v-1zm7-4h3v1h-3V6zm0 2h3v1h-3V8z"/></svg>
+            <span>View Server Logs</span>
+          </button>
         </div>`
       : state === 'ERROR'
-      ? `<div class="offline">
+      ? (() => {
+          const errDetail = this.serverManager.getLastErrorDetail();
+          const errTitle = errDetail && errDetail.includes('Internet connection required')
+            ? 'Initial Setup Requires Internet'
+            : 'Failed to Start Server';
+          const errSubtitle = errDetail || 'Could not launch MangaBar server. Check the output channel or click below to retry.';
+          return `<div class="offline">
           <svg class="offline-icon" style="color: var(--vscode-errorForeground, #f48771);" viewBox="0 0 16 16" fill="currentColor">
             <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
           </svg>
-          <h2>Failed to Start Server</h2>
-          <p>Could not launch MangaBar server. Check the output channel or click below to retry.</p>
-          <button class="start-btn" onclick="startServer()">
-            <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
-            Retry Launch
-          </button>
-        </div>`
+          <h2>${errTitle}</h2>
+          <p style="max-width: 420px; line-height: 1.4;">${errSubtitle}</p>
+          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:8px;">
+            <button class="start-btn" onclick="startServer()">
+              <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
+              Retry Launch
+            </button>
+            <button class="secondary" onclick="showLogs()" style="padding: 8px 16px;">
+              <svg class="icon-svg" viewBox="0 0 16 16"><path d="M14.5 3H1.5A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 14.5 3zm.5 8.5a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7zM3 6h2v1H3V6zm0 2h5v1H3V8zm0 2h3v1H3v-1zm7-4h3v1h-3V6zm0 2h3v1h-3V8z"/></svg>
+              <span>View Server Logs</span>
+            </button>
+          </div>
+        </div>`;
+        })()
       : `<div class="offline">
           <svg class="offline-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.492-3.287.81V2.828zm7.5 9.605c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v-9.92c-.917-.318-2.107-.69-3.287-.81-1.094-.11-2.278-.037-3.213.493v9.746zM0 2.25A1.25 1.25 0 0 1 1.25 1c1.55 0 3.05.45 4.75 1.05C7.25 2.5 8 3 8 3s.75-.5 2-.95c1.7-.6 3.2-1.05 4.75-1.05A1.25 1.25 0 0 1 16 2.25v10.5A1.25 1.25 0 0 1 14.75 14c-1.4 0-2.8-.4-4.25-.9-1-.35-1.5-.6-2.5-.6s-1.5.25-2.5.6c-1.45.5-2.85.9-4.25.9A1.25 1.25 0 0 1 0 12.75V2.25z"/></svg>
           <h2>MangaBar Server is Stopped</h2>
@@ -490,6 +811,10 @@ export class ReaderPanel {
       sendCmd('home');
     }
 
+    function goSearch() {
+      sendCmd('search');
+    }
+
     let refreshFallbackTimer = null;
     function refreshPage() {
       const overlay = document.getElementById('loadingOverlay');
@@ -523,10 +848,51 @@ export class ReaderPanel {
       vscode.postMessage({ command: 'startServer' });
     }
 
+    function showLogs() {
+      vscode.postMessage({ command: 'showLogs' });
+    }
+
     // Handle host and frame messages
     window.addEventListener('message', (event) => {
       if (!event.data) return;
-      if (event.data.type === 'reload') {
+      if (event.data.type === 'startupProgress' && event.data.progress) {
+        const p = event.data.progress;
+        const titleEl = document.getElementById('startupTitle');
+        const detailEl = document.getElementById('startupDetail');
+        const fillEl = document.getElementById('startupBarFill');
+        const dlBadge = document.getElementById('startupDownloadBadge');
+        const dlText = document.getElementById('startupDownloadText');
+
+        if (titleEl) titleEl.innerText = p.title;
+        if (detailEl) detailEl.innerText = p.detail;
+        if (fillEl) fillEl.style.width = (p.percent || (p.step * 25)) + '%';
+
+        if (p.downloadInfo) {
+          if (dlBadge) dlBadge.style.display = 'inline-flex';
+          if (dlText) dlText.innerText = p.downloadInfo.downloadedMB + ' MB / ' + p.downloadInfo.totalMB + ' MB (' + p.downloadInfo.percent + '%)';
+        } else if (dlBadge) {
+          dlBadge.style.display = 'none';
+        }
+
+        for (let i = 1; i <= 4; i++) {
+          const row = document.getElementById('stepRow' + i);
+          const icon = document.getElementById('stepIcon' + i);
+          const status = document.getElementById('stepStatus' + i);
+          if (!row || !icon || !status) continue;
+
+          row.className = 'step-row ' + (i < p.step ? 'completed' : i === p.step ? 'active' : 'pending');
+          if (i < p.step) {
+            icon.innerHTML = '<svg class="icon-svg" viewBox="0 0 16 16"><path fill="currentColor" d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>';
+            status.innerText = 'Ready';
+          } else if (i === p.step) {
+            icon.innerHTML = '<svg class="icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>';
+            status.innerText = 'Active';
+          } else {
+            icon.innerHTML = '<span class="step-dot"></span>';
+            status.innerText = 'Pending';
+          }
+        }
+      } else if (event.data.type === 'reload') {
         const overlay = document.getElementById('loadingOverlay');
         if (overlay) overlay.classList.remove('hidden');
         sendCmd('reload');
@@ -594,6 +960,8 @@ export class ReaderPanel {
         goBack();
       } else if (e.key === 'h' || e.key === 'H') {
         goHome();
+      } else if (e.key === 's' || e.key === 'S' || e.key === '/') {
+        goSearch();
       } else if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
         scrollDown();

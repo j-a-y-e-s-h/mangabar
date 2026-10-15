@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.3] - 2026-10-15
+
+### Added
+- **Global Manga Search & Discovery**:
+  - Injected Global Search action button directly into the Library AppBar (`/sources/all/search`) for fast 1-click catalog browsing across all installed sources.
+  - Interactive Empty Library Discovery Card with high-visibility *"Search Manga"* and *"Browse Sources"* buttons to guide new users immediately upon first launch.
+  - Dedicated IDE toolbar Search buttons in both the Sidebar header and Reader Panel toolbar with command bridge (`navSearch()` / `goSearch()`).
+  - Fast keyboard shortcuts (`/` and `s`) in reader views to trigger global search instantly.
+- **Configurable Auto-Sleep & Active-View Awareness**:
+  - Introduced `mangabar.idleSleepTimeout` setting (default: `5` minutes, `0` to disable).
+  - Background server engine automatically sleeps when inactive to reclaim ~350 MB RAM, but **strictly never sleeps** while the MangaBar Reader panel or Sidebar webview is actively open.
+  - Added Command Palette action `MangaBar: Configure Auto-Sleep Timeout...` to adjust sleep duration on the fly.
+
+### Fixed
+- **Source Extension Icon Restoration**:
+  - Fixed brand scrubber over-filtering to ensure all 1,440+ extension source icons (Keiyoushi, MangaDex, etc.) display their authentic logos instead of blank or generic placeholders.
+- **Engine Startup & Memory Optimization**:
+  - Reduced cold start latency and applied hotfix bytecode classes for smooth background lifecycle management without UI freezes.
+
+## [0.2.2] - 2026-10-14
+
+### Fixed
+- Resolved UI freeze, missing command activation, log streaming, and startup timeouts.
+
 ## [0.2.0] - 2026-10-03
  
 ### Added

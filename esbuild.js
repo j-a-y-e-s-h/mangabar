@@ -22,6 +22,7 @@ async function build() {
   } else {
     await ctx.rebuild();
     await ctx.dispose();
+    process.exit(0);
   }
 }
 

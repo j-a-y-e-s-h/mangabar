@@ -7,6 +7,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'mangabar.sidebarView';
   private webviewView?: vscode.WebviewView;
 
+  public isVisible(): boolean {
+    return Boolean(this.webviewView && this.webviewView.visible);
+  }
+
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly serverManager: ServerManager,
@@ -14,6 +18,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   ) {
     this.serverManager.onDidChangeState(() => {
       this.updateWebviewContent();
+    });
+    this.serverManager.onDidChangeStartupProgress((progress) => {
+      if (this.webviewView && this.serverManager.getState() === 'STARTING') {
+        this.webviewView.webview.postMessage({
+          type: 'startupProgress',
+          progress,
+        });
+      }
     });
   }
 
@@ -58,6 +70,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'configureStorage':
           vscode.commands.executeCommand('mangabar.configureStorage');
           break;
+        case 'configureSleepTimeout':
+          vscode.commands.executeCommand('mangabar.configureSleepTimeout');
+          break;
         case 'getStoreSummary':
           await this.handleGetStoreSummary();
           break;
@@ -67,6 +82,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'fetchAllExtensions':
           await this.handleFetchAllExtensions();
           break;
+      }
+    });
+
+    this.serverManager.registerActiveViewChecker(() => {
+      return this.isVisible();
+    });
+
+    webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        this.serverManager.resetIdleTimer();
       }
     });
 
@@ -657,6 +682,228 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       max-width: 280px;
       line-height: 1.7;
     }
+
+    /* ── 4-Step Startup Progress Card ── */
+    .startup-card {
+      padding: 24px 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 14px;
+      max-width: 320px;
+      margin: 0 auto;
+      user-select: none;
+    }
+    .startup-brand-cluster {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+    }
+    .startup-brand-icon {
+      width: 38px;
+      height: 38px;
+      color: var(--vscode-button-background, #007acc);
+      animation: pulseGlow 2.2s infinite ease-in-out;
+    }
+    .startup-ring {
+      position: absolute;
+      inset: -4px;
+      border: 2px dashed rgba(56, 189, 248, 0.45);
+      border-radius: 50%;
+      animation: spin 10s linear infinite;
+    }
+    .startup-title-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .startup-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+    .startup-detail {
+      font-size: 11px;
+      opacity: 0.75;
+      line-height: 1.4;
+      min-height: 15px;
+    }
+    .startup-progress-track {
+      width: 100%;
+      height: 6px;
+      background: ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'};
+      border-radius: 9999px;
+      overflow: hidden;
+      border: 1px solid ${borderColor};
+      position: relative;
+    }
+    .startup-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #007acc, #38bdf8);
+      border-radius: 9999px;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+    }
+    .download-pill {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      padding: 3px 8px;
+      border-radius: 12px;
+      display: none;
+      align-items: center;
+      gap: 5px;
+      animation: fadeIn 0.2s ease;
+    }
+    .startup-stepper {
+      width: 100%;
+      background: ${cardBg};
+      border: 1px solid ${borderColor};
+      border-radius: 8px;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+    }
+    .step-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      padding: 5px 6px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+    .step-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-indicator {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+    .step-row.completed .step-indicator {
+      color: #10b981;
+    }
+    .step-row.active .step-indicator {
+      color: #38bdf8;
+    }
+    .step-row.pending .step-indicator {
+      color: ${isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)'};
+    }
+    .step-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .step-row.active {
+      background: ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'};
+      font-weight: 500;
+    }
+    .step-status-tag {
+      font-size: 9.5px;
+      opacity: 0.6;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .step-row.active .step-status-tag {
+      color: #38bdf8;
+      opacity: 1;
+    }
+    .step-row.completed .step-status-tag {
+      color: #10b981;
+      opacity: 0.9;
+    }
+
+    .startup-reassurance {
+      font-size: 10px;
+      opacity: 0.75;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'};
+      border: 1px solid ${borderColor};
+      padding: 4px 8px;
+      border-radius: 6px;
+      line-height: 1.35;
+      text-align: left;
+      width: 100%;
+    }
+    .startup-reassurance svg {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+      color: #38bdf8;
+    }
+
+    /* ── Welcome Onboarding Banner ── */
+    .welcome-banner {
+      background: linear-gradient(135deg, rgba(0, 122, 204, 0.16), rgba(56, 189, 248, 0.08));
+      border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 7px 10px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+      animation: fadeIn 0.3s ease;
+      z-index: 8;
+      flex-shrink: 0;
+    }
+    .welcome-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .welcome-sparkle {
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .welcome-text {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      line-height: 1.3;
+    }
+    .welcome-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .welcome-btn {
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 4px;
+      background: #007acc;
+      color: #ffffff;
+      height: 22px;
+    }
+    .welcome-close {
+      width: 20px;
+      height: 20px;
+      font-size: 10px;
+      padding: 0;
+      opacity: 0.65;
+    }
   </style>
 </head>
 <body>
@@ -675,6 +922,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           </button>
           <button class="secondary icon-btn" id="btnNavHome" title="Library Home (H)" onclick="navHome()">
             <svg class="icon-svg" viewBox="0 0 16 16"><path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 2 7.5V14a1 1 0 0 0 1 1h2.5a.5.5 0 0 0 .5-.5V11h4v3.5a.5.5 0 0 0 .5.5H13a1 1 0 0 0 1-1V7.5a.5.5 0 0 0 .354-.854l-6-6z"/></svg>
+          </button>
+          <button class="secondary icon-btn" id="btnNavSearch" title="Search Manga Across All Sources (/ or S)" onclick="navSearch()">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M19.3 16.9c.4-.7.7-1.5.7-2.4 0-2.5-2-4.5-4.5-4.5S11 12 11 14.5s2 4.5 4.5 4.5c.9 0 1.7-.3 2.4-.7l3.2 3.2 1.4-1.4zm-3.8.1c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5M12 20v2C6.48 22 2 17.52 2 12S6.48 2 12 2c4.84 0 8.87 3.44 9.8 8h-2.07c-.64-2.46-2.4-4.47-4.73-5.41V5c0 1.1-.9 2-2 2h-2v2c0 .55-.45 1-1 1H8v2h2v3H9l-4.79-4.79C4.08 10.79 4 11.38 4 12c0 4.41 3.59 8 8 8"/></svg>
           </button>
           <div class="toolbar-sep"></div>
           `
@@ -834,25 +1084,128 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             </div>
             <div class="loader-label">Loading MangaBar WebUI…</div>
           </div>
+          <div class="welcome-banner" id="welcomeBanner">
+            <div class="welcome-left">
+              <span class="welcome-sparkle">✨</span>
+              <div class="welcome-text">
+                <strong>Welcome to MangaBar!</strong>
+                <span>Click <b>Stores</b> above or button to add manga sources in 1 click.</span>
+              </div>
+            </div>
+            <div class="welcome-actions">
+              <button class="welcome-btn" onclick="openStoresFromBanner()">Add Sources</button>
+              <button class="secondary icon-btn welcome-close" title="Dismiss" onclick="dismissWelcomeBanner()">✕</button>
+            </div>
+          </div>
           <iframe id="mangabarFrame" src="${serverUrl}" allow="clipboard-read; clipboard-write" onload="onIframeLoad()"></iframe>`
         : state === 'STARTING'
-        ? `
-        <div class="placeholder-card">
-          <svg class="brand-icon icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>
-          <div class="title">Launching MangaBar Server</div>
-          <div class="subtitle">Starting local background server on port ${port}...</div>
+        ? (() => {
+            const progress = this.serverManager.getStartupProgress();
+            const currentStep = progress?.step || 1;
+            const percent = progress?.percent || (currentStep * 25);
+            const title = progress?.title || 'Starting MangaBar Engine';
+            const detail = progress?.detail || 'Initializing background server daemon...';
+            const dl = progress?.downloadInfo;
+
+            return `
+        <div class="startup-card">
+          <div class="startup-brand-cluster">
+            <div class="startup-ring"></div>
+            <svg class="startup-brand-icon" viewBox="0 0 24 24" fill="none">
+              <path d="M3 8.5v8.5c2.5-1 5-.5 6 1.5V6.5C7.8 4.8 5.2 4.5 3 5.5v3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M21 8.5v8.5c-2.5-1-5-.5-6 1.5V6.5c1.2-1.7 3.8-2 6-1v3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M8.5 17.5V7l3.5 5 3.5-5v10.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 14v4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M5.5 4.2C7 3.2 8.5 3.5 9.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M18.5 4.2c-1.5-1-3-.7-4 .3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <div class="startup-title-stack">
+            <div class="startup-title" id="startupTitle">${title}</div>
+            <div class="startup-detail" id="startupDetail">${detail}</div>
+          </div>
+
+          <div class="startup-progress-track">
+            <div class="startup-progress-fill" id="startupBarFill" style="width: ${percent}%;"></div>
+          </div>
+
+          <div class="download-pill" id="startupDownloadBadge" style="${dl ? 'display:inline-flex;' : ''}">
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M.5 9.9a.75.75 0 0 1 .75.75v2.85c0 .414.336.75.75.75h12a.75.75 0 0 0 .75-.75V10.65a.75.75 0 0 1 1.5 0v2.85A2.25 2.25 0 0 1 14 15.75H2A2.25 2.25 0 0 1-.25 13.5V10.65A.75.75 0 0 1 .5 9.9z"/><path d="M7.47 10.53a.75.75 0 0 0 1.06 0l3-3a.75.75 0 0 0-1.06-1.06L8.75 8.19V1.75a.75.75 0 0 0-1.5 0v6.44L5.53 6.47a.75.75 0 0 0-1.06 1.06l3 3z"/></svg>
+            <span id="startupDownloadText">${dl ? `${dl.downloadedMB} MB / ${dl.totalMB} MB (${dl.percent}%)` : ''}</span>
+          </div>
+
+          <div class="startup-stepper">
+            <div class="step-row ${currentStep > 1 ? 'completed' : currentStep === 1 ? 'active' : 'pending'}" id="stepRow1">
+              <div class="step-left">
+                <span class="step-indicator" id="stepIcon1">
+                  ${currentStep > 1 ? '<svg class="icon-svg" viewBox="0 0 16 16"><path fill="currentColor" d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>' : currentStep === 1 ? '<svg class="icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>' : '<span class="step-dot"></span>'}
+                </span>
+                <span>Java 21 Runtime</span>
+              </div>
+              <span class="step-status-tag" id="stepStatus1">${currentStep > 1 ? 'Ready' : currentStep === 1 ? 'Active' : 'Pending'}</span>
+            </div>
+
+            <div class="step-row ${currentStep > 2 ? 'completed' : currentStep === 2 ? 'active' : 'pending'}" id="stepRow2">
+              <div class="step-left">
+                <span class="step-indicator" id="stepIcon2">
+                  ${currentStep > 2 ? '<svg class="icon-svg" viewBox="0 0 16 16"><path fill="currentColor" d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>' : currentStep === 2 ? '<svg class="icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>' : '<span class="step-dot"></span>'}
+                </span>
+                <span>Server Engine Binary</span>
+              </div>
+              <span class="step-status-tag" id="stepStatus2">${currentStep > 2 ? 'Ready' : currentStep === 2 ? 'Active' : 'Pending'}</span>
+            </div>
+
+            <div class="step-row ${currentStep > 3 ? 'completed' : currentStep === 3 ? 'active' : 'pending'}" id="stepRow3">
+              <div class="step-left">
+                <span class="step-indicator" id="stepIcon3">
+                  ${currentStep > 3 ? '<svg class="icon-svg" viewBox="0 0 16 16"><path fill="currentColor" d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>' : currentStep === 3 ? '<svg class="icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>' : '<span class="step-dot"></span>'}
+                </span>
+                <span>Database & Cache</span>
+              </div>
+              <span class="step-status-tag" id="stepStatus3">${currentStep > 3 ? 'Ready' : currentStep === 3 ? 'Active' : 'Pending'}</span>
+            </div>
+
+            <div class="step-row ${currentStep >= 4 ? (percent >= 100 ? 'completed' : 'active') : 'pending'}" id="stepRow4">
+              <div class="step-left">
+                <span class="step-indicator" id="stepIcon4">
+                  ${currentStep >= 4 && percent >= 100 ? '<svg class="icon-svg" viewBox="0 0 16 16"><path fill="currentColor" d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>' : currentStep === 4 ? '<svg class="icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>' : '<span class="step-dot"></span>'}
+                </span>
+                <span>Web Reader UI</span>
+              </div>
+              <span class="step-status-tag" id="stepStatus4">${currentStep >= 4 && percent >= 100 ? 'Ready' : currentStep === 4 ? 'Active' : 'Pending'}</span>
+            </div>
+          </div>
+
+          <div class="startup-reassurance">
+            <svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm9-3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-.25 3.75a.75.75 0 0 0-1.5 0v3.5a.75.75 0 0 0 1.5 0v-3.5z"/></svg>
+            <span>First-time setup only. Future starts will be instant.</span>
+          </div>
+
+          <button class="secondary" onclick="send('showLogs')" style="padding: 5px 12px; font-size:11px;">
+            <svg class="icon-svg" viewBox="0 0 16 16"><path d="M14.5 3H1.5A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 14.5 3zm.5 8.5a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7zM3 6h2v1H3V6zm0 2h5v1H3V8zm0 2h3v1H3v-1zm7-4h3v1h-3V6zm0 2h3v1h-3V8z"/></svg>
+            <span>View Server Logs</span>
+          </button>
         </div>
-      `
+      `;
+          })()
         : state === 'ERROR'
-        ? `
+        ? (() => {
+            const errDetail = this.serverManager.getLastErrorDetail();
+            const errTitle = errDetail && errDetail.includes('Internet connection required')
+              ? 'Initial Setup Requires Internet'
+              : 'Server Encountered an Error';
+            const errSubtitle = errDetail || 'Check the "MangaBar Server" output log tab for details.';
+
+            return `
         <div class="placeholder-card">
           <svg class="brand-icon" style="color:#ef4444;" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm9-3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-.25 3.75a.75.75 0 0 0-1.5 0v3.5a.75.75 0 0 0 1.5 0v-3.5z"/></svg>
-          <div class="title" style="color:#ef4444;">Server Encountered an Error</div>
-          <div class="subtitle">Check the "MangaBar Server" output log tab for details.</div>
+          <div class="title" style="color:#ef4444;">${errTitle}</div>
+          <div class="subtitle" style="max-width:280px; line-height:1.4;">${errSubtitle}</div>
           <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:4px;">
             <button onclick="send('restart')" style="padding: 6px 14px;">
               <svg class="icon-svg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1 8a7 7 0 1 1 12.07 4.95l-.71-.71A6 6 0 1 0 2 8h2l-2.5 3L-1 8h2zm14 0a7 7 0 1 1-12.07-4.95l.71.71A6 6 0 1 0 14 8h-2l2.5-3L17 8h-2z"/></svg>
-              <span>Restart Server</span>
+              <span>Retry Launch</span>
             </button>
             <button class="secondary" onclick="send('showLogs')" style="padding: 6px 12px;">
               <svg class="icon-svg" viewBox="0 0 16 16"><path d="M14.5 3H1.5A1.5 1.5 0 0 0 0 4.5v7A1.5 1.5 0 0 0 1.5 13h13a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 14.5 3zm.5 8.5a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7zM3 6h2v1H3V6zm0 2h5v1H3V8zm0 2h3v1H3v-1zm7-4h3v1h-3V6zm0 2h3v1h-3V8z"/></svg>
@@ -860,7 +1213,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             </button>
           </div>
         </div>
-      `
+      `;
+          })()
         : `
         <div class="placeholder-card">
           <svg class="brand-icon" viewBox="0 0 24 24" fill="none">
@@ -900,17 +1254,38 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       vscode.postMessage({ command, ...extra });
     }
 
-    function toggleDrawer() {
+    function toggleDrawer(forceOpen) {
       const drawer = document.getElementById('storesDrawer');
       const btn = document.getElementById('toggleDrawerBtn');
       if (!drawer) return;
-      const isOpen = drawer.classList.toggle('open');
+      const isOpen = forceOpen !== undefined ? forceOpen : !drawer.classList.contains('open');
+      drawer.classList.toggle('open', isOpen);
       if (btn) {
         btn.classList.toggle('active-toggle', isOpen);
       }
       if (isOpen) {
         send('getStoreSummary');
       }
+    }
+
+    function checkWelcomeBanner() {
+      try {
+        if (!localStorage.getItem('mangabar_onboarding_dismissed')) {
+          const banner = document.getElementById('welcomeBanner');
+          if (banner) banner.style.display = 'flex';
+        }
+      } catch (_) {}
+    }
+
+    function dismissWelcomeBanner() {
+      try { localStorage.setItem('mangabar_onboarding_dismissed', 'true'); } catch(_) {}
+      const banner = document.getElementById('welcomeBanner');
+      if (banner) banner.style.display = 'none';
+    }
+
+    function openStoresFromBanner() {
+      toggleDrawer(true);
+      dismissWelcomeBanner();
     }
 
     function addDefaultExtensionStore() {
@@ -973,6 +1348,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       sendCmd('home');
     }
 
+    function navSearch() {
+      sendCmd('search');
+    }
+
     function zoomIn() {
       sendCmd('zoomIn');
     }
@@ -1030,6 +1409,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         navBack();
       } else if (e.key === 'h' || e.key === 'H') {
         navHome();
+      } else if (e.key === 's' || e.key === 'S' || e.key === '/') {
+        navSearch();
       } else if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
         scrollDown();
@@ -1047,7 +1428,44 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     window.addEventListener('message', (event) => {
       const msg = event.data;
       if (!msg) return;
-      if (msg.type === 'storeSummary') {
+      if (msg.type === 'startupProgress' && msg.progress) {
+        const p = msg.progress;
+        const titleEl = document.getElementById('startupTitle');
+        const detailEl = document.getElementById('startupDetail');
+        const fillEl = document.getElementById('startupBarFill');
+        const dlBadge = document.getElementById('startupDownloadBadge');
+        const dlText = document.getElementById('startupDownloadText');
+
+        if (titleEl) titleEl.innerText = p.title;
+        if (detailEl) detailEl.innerText = p.detail;
+        if (fillEl) fillEl.style.width = (p.percent || (p.step * 25)) + '%';
+
+        if (p.downloadInfo) {
+          if (dlBadge) dlBadge.style.display = 'inline-flex';
+          if (dlText) dlText.innerText = p.downloadInfo.downloadedMB + ' MB / ' + p.downloadInfo.totalMB + ' MB (' + p.downloadInfo.percent + '%)';
+        } else if (dlBadge) {
+          dlBadge.style.display = 'none';
+        }
+
+        for (let i = 1; i <= 4; i++) {
+          const row = document.getElementById('stepRow' + i);
+          const icon = document.getElementById('stepIcon' + i);
+          const status = document.getElementById('stepStatus' + i);
+          if (!row || !icon || !status) continue;
+
+          row.className = 'step-row ' + (i < p.step ? 'completed' : i === p.step ? 'active' : 'pending');
+          if (i < p.step) {
+            icon.innerHTML = '<svg class="icon-svg" viewBox="0 0 16 16"><path fill="currentColor" d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/></svg>';
+            status.innerText = 'Ready';
+          } else if (i === p.step) {
+            icon.innerHTML = '<svg class="icon-svg spin" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="14" fill="none"/></svg>';
+            status.innerText = 'Active';
+          } else {
+            icon.innerHTML = '<span class="step-dot"></span>';
+            status.innerText = 'Pending';
+          }
+        }
+      } else if (msg.type === 'storeSummary') {
         const badge = document.getElementById('extensionCountBadge');
         if (badge) {
           const count = msg.summary?.totalCount || 0;
@@ -1125,6 +1543,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
       const loader = document.getElementById('iframeLoader');
       if (loader) loader.classList.add('hidden');
+      checkWelcomeBanner();
     }
 
     function onIframeLoad() {
@@ -1167,7 +1586,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
 
     // Initial check on load
-    ${state === 'RUNNING' ? `send('getStoreSummary');` : ''}
+    ${state === 'RUNNING' ? `send('getStoreSummary'); checkWelcomeBanner();` : ''}
   </script>
 </body>
 </html>`;

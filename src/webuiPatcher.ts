@@ -8,7 +8,9 @@ export function getWebUIDirectories(): string[] {
   const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
   dirs.push(path.join(localAppData, 'Tachidesk', 'webUI'));
   dirs.push(path.join(localAppData, 'Temp', 'Tachidesk', 'webUI-serve'));
+  dirs.push(path.join(localAppData, 'Temp', 'MangaBar Core', 'webUI-serve'));
   dirs.push(path.join(os.tmpdir(), 'Tachidesk', 'webUI-serve'));
+  dirs.push(path.join(os.tmpdir(), 'MangaBar Core', 'webUI-serve'));
   dirs.push(path.join(os.homedir(), '.mangabar', 'webUI'));
   dirs.push(path.join(os.homedir(), '.suwayomi', 'webUI'));
   return dirs.filter((d) => fs.existsSync(d));
@@ -33,6 +35,11 @@ export function patchWebUIDirectories(extensionPath: string, outputChannel?: vsc
   }
 
   for (const webUIDir of webUIDirs) {
+    const stampFile = path.join(webUIDir, '.mangabar_branded_v2');
+    if (fs.existsSync(stampFile)) {
+      continue;
+    }
+
     outputChannel?.appendLine(`[MangaBar] Branding WebUI cache directory: ${webUIDir}`);
 
     // 1. Overwrite all favicon and manifest PNGs with MangaBar PNG badge
@@ -196,6 +203,10 @@ export function patchWebUIDirectories(extensionPath: string, outputChannel?: vsc
         outputChannel?.appendLine(`[MangaBar] Warning patching assets: ${e.message}`);
       }
     }
+
+    try {
+      fs.writeFileSync(stampFile, Date.now().toString(), 'utf8');
+    } catch (_) {}
   }
 
   outputChannel?.appendLine('[MangaBar] WebUI cache branding completed.');

@@ -19,6 +19,19 @@ import { patchWebUIDirectories } from './webuiPatcher';
 
 export type ServerState = 'STOPPED' | 'STARTING' | 'RUNNING' | 'ERROR';
 
+export interface StartupProgress {
+  step: number; // 1: Java Runtime, 2: Server Binary, 3: Engine & Database, 4: Web Reader UI
+  totalSteps: number;
+  title: string;
+  detail: string;
+  percent?: number;
+  downloadInfo?: {
+    downloadedMB: string;
+    totalMB: string;
+    percent: number;
+  };
+}
+
 export class ServerManager {
   private childProcess: child_process.ChildProcess | null = null;
   private state: ServerState = 'STOPPED';
@@ -29,12 +42,46 @@ export class ServerManager {
   private configManager: ConfigManager;
   private stateChangeEmitter = new vscode.EventEmitter<ServerState>();
   public readonly onDidChangeState = this.stateChangeEmitter.event;
+  private currentStartupProgress: StartupProgress | null = null;
+  private startupProgressEmitter = new vscode.EventEmitter<StartupProgress>();
+  public readonly onDidChangeStartupProgress = this.startupProgressEmitter.event;
   private idleTimer: NodeJS.Timeout | null = null;
-  private readonly idleTimeoutMs: number = 15 * 60 * 1000; // 15 minutes auto-sleep
+  private readonly idleTimeoutMs: number = 5 * 60 * 1000; // 5 minutes auto-sleep
   private watchdogTimer: NodeJS.Timeout | null = null;
   private startingPromise: Promise<boolean> | null = null;
   private logTailInterval: NodeJS.Timeout | null = null;
   private logTailBytesRead: number = 0;
+  private lastErrorDetail: string | null = null;
+
+  public getLastErrorDetail(): string | null {
+    return this.lastErrorDetail;
+  }
+
+  public clearLastErrorDetail(): void {
+    this.lastErrorDetail = null;
+  }
+
+  public getStartupProgress(): StartupProgress | null {
+    return this.currentStartupProgress;
+  }
+
+  public setStartupProgress(
+    step: number,
+    title: string,
+    detail: string,
+    percent?: number,
+    downloadInfo?: { downloadedMB: string; totalMB: string; percent: number }
+  ): void {
+    this.currentStartupProgress = {
+      step,
+      totalSteps: 4,
+      title,
+      detail,
+      percent: percent !== undefined ? percent : step * 25,
+      downloadInfo,
+    };
+    this.startupProgressEmitter.fire(this.currentStartupProgress);
+  }
 
   constructor(private context: vscode.ExtensionContext, configManager?: ConfigManager) {
     this.outputChannel = vscode.window.createOutputChannel('MangaBar Server');
@@ -42,20 +89,65 @@ export class ServerManager {
     this.currentPort = this.configManager.getConfiguredPort();
   }
 
+  private activeViewCheckers: (() => boolean)[] = [];
+
+  public registerActiveViewChecker(checker: () => boolean): vscode.Disposable {
+    this.activeViewCheckers.push(checker);
+    return {
+      dispose: () => {
+        const idx = this.activeViewCheckers.indexOf(checker);
+        if (idx >= 0) {
+          this.activeViewCheckers.splice(idx, 1);
+        }
+      },
+    };
+  }
+
+  public isAnyViewActive(): boolean {
+    for (const checker of this.activeViewCheckers) {
+      try {
+        if (checker()) {
+          return true;
+        }
+      } catch {}
+    }
+    return false;
+  }
+
+  public getIdleTimeoutMs(): number {
+    const minutes = this.configManager.getIdleSleepTimeoutMinutes();
+    if (minutes <= 0) {
+      return 0; // Disabled
+    }
+    return minutes * 60 * 1000;
+  }
+
   public resetIdleTimer(): void {
     if (this.idleTimer) {
       clearTimeout(this.idleTimer);
       this.idleTimer = null;
     }
+    const timeoutMs = this.getIdleTimeoutMs();
+    if (timeoutMs <= 0) {
+      // Auto-sleep disabled by user setting
+      return;
+    }
+
     if (this.state === 'RUNNING' || this.state === 'STARTING') {
       this.idleTimer = setTimeout(() => {
+        if (this.isAnyViewActive()) {
+          // Keep server running because reader panel or sidebar is open/visible
+          this.resetIdleTimer();
+          return;
+        }
+        const minutes = this.configManager.getIdleSleepTimeoutMinutes();
         this.outputChannel.appendLine(
-          '[MangaBar] 15 minutes of idle time elapsed. Automatically sleeping background server daemon to conserve host RAM and CPU.'
+          `[MangaBar] ${minutes} minutes of idle time elapsed with all MangaBar views closed. Automatically sleeping background server daemon to conserve host RAM and CPU.`
         );
         this.stopServer().catch((err) => {
           this.outputChannel.appendLine(`[MangaBar Error] Auto-sleep failure: ${err.message}`);
         });
-      }, this.idleTimeoutMs);
+      }, timeoutMs);
     }
   }
 
@@ -146,12 +238,14 @@ export class ServerManager {
     }
 
     return new Promise((resolve) => {
-      // Auto-brand WebUI cache directories on disk upon proxy startup
-      try {
-        patchWebUIDirectories(this.context.extensionPath, this.outputChannel);
-      } catch (err: any) {
-        this.outputChannel.appendLine(`[MangaBar] WebUI disk patch error: ${err.message}`);
-      }
+      // Auto-brand WebUI cache directories asynchronously in the background
+      setImmediate(() => {
+        try {
+          patchWebUIDirectories(this.context.extensionPath, this.outputChannel);
+        } catch (err: any) {
+          this.outputChannel.appendLine(`[MangaBar] WebUI disk patch error: ${err.message}`);
+        }
+      });
 
       const targetPort = this.currentPort;
       const enhancerCode = getReaderEnhancerScript();
@@ -168,52 +262,54 @@ export class ServerManager {
           return;
         }
 
-        // 1b. Serve MangaBar PNG/SVG icon for any favicon/logo/touch icon request
+        // 1b. Serve MangaBar PNG/SVG icon for any favicon/logo/touch icon request (NEVER intercept /api/ requests)
         const cleanUrl = (req.url || '').split('?')[0].toLowerCase();
-        if (
-          cleanUrl === '/__mangabar_icon.png' ||
-          cleanUrl.endsWith('apple-touch-icon.png') ||
-          cleanUrl.endsWith('favicon-96x96.png') ||
-          cleanUrl.endsWith('web-app-manifest-192x192.png') ||
-          cleanUrl.endsWith('web-app-manifest-512x512.png') ||
-          cleanUrl.endsWith('logo192.png') ||
-          cleanUrl.endsWith('logo512.png') ||
-          cleanUrl.endsWith('favicon.ico')
-        ) {
-          const iconPngPath = path.join(this.context.extensionPath, 'media', 'icon.png');
-          if (fs.existsSync(iconPngPath)) {
-            const pngData = fs.readFileSync(iconPngPath);
-            res.writeHead(200, {
-              'Content-Type': 'image/png',
-              'Cache-Control': 'public, max-age=86400',
-            });
-            res.end(pngData);
-            return;
+        const isApiRequest = cleanUrl.startsWith('/api/') || cleanUrl.includes('/api/v1/');
+        if (!isApiRequest) {
+          if (
+            cleanUrl === '/__mangabar_icon.png' ||
+            cleanUrl.endsWith('apple-touch-icon.png') ||
+            cleanUrl.endsWith('favicon-96x96.png') ||
+            cleanUrl.endsWith('web-app-manifest-192x192.png') ||
+            cleanUrl.endsWith('web-app-manifest-512x512.png') ||
+            cleanUrl.endsWith('logo192.png') ||
+            cleanUrl.endsWith('logo512.png') ||
+            cleanUrl.endsWith('favicon.ico')
+          ) {
+            const iconPngPath = path.join(this.context.extensionPath, 'media', 'icon.png');
+            if (fs.existsSync(iconPngPath)) {
+              const pngData = fs.readFileSync(iconPngPath);
+              res.writeHead(200, {
+                'Content-Type': 'image/png',
+                'Cache-Control': 'public, max-age=86400',
+              });
+              res.end(pngData);
+              return;
+            }
           }
-        }
 
-        if (
-          cleanUrl === '/__mangabar_icon.svg' ||
-          cleanUrl.endsWith('favicon.svg') ||
-          cleanUrl.includes('favicon')
-        ) {
-          const iconPath = path.join(this.context.extensionPath, 'media', 'mangabar-color.svg');
-          if (fs.existsSync(iconPath)) {
-            const svgData = fs.readFileSync(iconPath, 'utf8');
-            res.writeHead(200, {
-              'Content-Type': 'image/svg+xml; charset=utf-8',
-              'Cache-Control': 'public, max-age=86400',
-            });
-            res.end(svgData);
-            return;
+          if (
+            cleanUrl === '/__mangabar_icon.svg' ||
+            cleanUrl.endsWith('favicon.svg') ||
+            cleanUrl.includes('favicon')
+          ) {
+            const iconPath = path.join(this.context.extensionPath, 'media', 'mangabar-color.svg');
+            if (fs.existsSync(iconPath)) {
+              const svgData = fs.readFileSync(iconPath, 'utf8');
+              res.writeHead(200, {
+                'Content-Type': 'image/svg+xml; charset=utf-8',
+                'Cache-Control': 'public, max-age=86400',
+              });
+              res.end(svgData);
+              return;
+            }
           }
-        }
 
-        // 1c. Serve custom MangaBar webmanifest
-        if (cleanUrl.includes('webmanifest') || cleanUrl.includes('manifest.json')) {
-          const manifest = JSON.stringify({
-            name: 'MangaBar',
-            short_name: 'MangaBar',
+          // 1c. Serve custom MangaBar webmanifest
+          if (cleanUrl.includes('webmanifest') || cleanUrl.includes('manifest.json')) {
+            const manifest = JSON.stringify({
+              name: 'MangaBar',
+              short_name: 'MangaBar',
             description: 'Manga & Comic Reader',
             icons: [
               {
@@ -239,6 +335,7 @@ export class ServerManager {
           res.end(manifest);
           return;
         }
+      }
 
         // 2. Forward request to MangaBar server engine
         const headers: http.IncomingHttpHeaders = { ...req.headers, host: `127.0.0.1:${targetPort}` };
@@ -258,6 +355,35 @@ export class ServerManager {
             const isReaderJs = !!req.url && /\/assets\/Reader-[A-Za-z0-9_-]+\.js(?:\?.*)?$/.test(req.url);
             const isReaderServiceJs = !!req.url && /\/assets\/ReaderService-[A-Za-z0-9_-]+\.js(?:\?.*)?$/.test(req.url);
             const isIndexJs = !!req.url && /\/assets\/index(?:-legacy)?-[A-Za-z0-9_-]+\.js(?:\?.*)?$/.test(req.url);
+
+            const accept = req.headers['accept'] || '';
+            const isHtmlReq =
+              (typeof accept === 'string' && accept.includes('text/html')) ||
+              req.url === '/' ||
+              req.url?.startsWith('/?') ||
+              req.url?.startsWith('/manga') ||
+              req.url?.startsWith('/library');
+
+            if (upstreamRes.statusCode === 404 && isHtmlReq) {
+              let errBody = '';
+              upstreamRes.setEncoding('utf8');
+              upstreamRes.on('data', (chunk) => (errBody += chunk));
+              upstreamRes.on('end', () => {
+                // If Javalin returns 404 on root/manga routes (WebUI not mounted yet), serve connecting splash with auto-refresh!
+                if (errBody.includes('not found') || errBody.includes('Endpoint')) {
+                  res.writeHead(200, {
+                    'Content-Type': 'text/html; charset=utf-8',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                  });
+                  res.end(this.getConnectingHtml(targetPort));
+                } else {
+                  const resHeaders = this.sanitizeUpstreamHeaders(upstreamRes.headers);
+                  res.writeHead(404, resHeaders);
+                  res.end(errBody);
+                }
+              });
+              return;
+            }
 
             if (isHtml) {
               let body = '';
@@ -367,14 +493,66 @@ export class ServerManager {
               (typeof accept === 'string' && accept.includes('text/html')) ||
               req.url === '/' ||
               req.url?.startsWith('/?') ||
-              req.url?.startsWith('/manga');
+              req.url?.startsWith('/manga') ||
+              req.url?.startsWith('/library');
 
             if (isHtmlReq) {
-              const html = `<!DOCTYPE html>
+              res.writeHead(200, {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+              });
+              res.end(this.getConnectingHtml(targetPort));
+            } else {
+              res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' });
+              res.end('Proxy error: ' + err.message);
+            }
+          }
+        });
+
+        req.pipe(upstream);
+      });
+
+      this.proxyServer.on('upgrade', (req, socket, head) => {
+        const proxySocket = net.connect(targetPort, '127.0.0.1', () => {
+          proxySocket.write(
+            `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n` +
+              Object.entries(req.headers)
+                .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+                .join('\r\n') +
+              '\r\n\r\n'
+          );
+          proxySocket.write(head);
+          proxySocket.pipe(socket);
+          socket.pipe(proxySocket);
+        });
+        proxySocket.on('error', () => socket.destroy());
+      });
+
+      this.proxyServer.listen(0, '127.0.0.1', () => {
+        const addr = this.proxyServer?.address();
+        if (addr && typeof addr === 'object') {
+          this.proxyPort = addr.port;
+          this.outputChannel.appendLine(`[MangaBar] Injected enhancer proxy listening on port ${this.proxyPort}`);
+          resolve(this.proxyPort);
+        } else {
+          resolve(this.currentPort);
+        }
+      });
+
+      this.proxyServer.on('error', (e) => {
+        this.outputChannel.appendLine(`[MangaBar] Proxy server error: ${e.message}`);
+        resolve(this.currentPort);
+      });
+    });
+  }
+
+  private getConnectingHtml(targetPort: number): string {
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="2">
   <title>MangaBar - Connecting</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -420,73 +598,27 @@ export class ServerManager {
 </head>
 <body>
   <div class="spinner"></div>
-  <div class="title">Connecting to MangaBar Server Engine…</div>
-  <div class="subtitle">Waiting for server on port ${targetPort} to become responsive. The page will auto-refresh once ready.</div>
+  <div class="title">Initializing MangaBar Engine…</div>
+  <div class="subtitle">Waiting for web reader on port ${targetPort} to finish mounting. The page will auto-refresh once ready.</div>
   <button class="action-btn" onclick="location.reload()">
     <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/></svg>
-    <span>Retry Now</span>
+    <span>Refresh Now</span>
   </button>
   <script>
     let pollInterval = setInterval(() => {
-      fetch('/api/v1/about')
-        .then((r) => {
-          if (r.ok) {
+      fetch('/')
+        .then((r) => r.text())
+        .then((txt) => {
+          if ((txt.includes('<div id="root">') || txt.includes('<!doctype') || txt.includes('<html')) && !txt.includes('Endpoint GET / not found')) {
             clearInterval(pollInterval);
             location.reload();
           }
         })
         .catch(() => {});
-    }, 1500);
+    }, 1000);
   </script>
 </body>
 </html>`;
-              res.writeHead(200, {
-                'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-              });
-              res.end(html);
-            } else {
-              res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' });
-              res.end('Proxy error: ' + err.message);
-            }
-          }
-        });
-
-        req.pipe(upstream);
-      });
-
-      this.proxyServer.on('upgrade', (req, socket, head) => {
-        const proxySocket = net.connect(targetPort, '127.0.0.1', () => {
-          proxySocket.write(
-            `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n` +
-              Object.entries(req.headers)
-                .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
-                .join('\r\n') +
-              '\r\n\r\n'
-          );
-          proxySocket.write(head);
-          proxySocket.pipe(socket);
-          socket.pipe(proxySocket);
-        });
-        proxySocket.on('error', () => socket.destroy());
-      });
-
-      this.proxyServer.listen(0, '127.0.0.1', () => {
-        const addr = this.proxyServer?.address();
-        if (addr && typeof addr === 'object') {
-          this.proxyPort = addr.port;
-          this.outputChannel.appendLine(`[MangaBar] Injected enhancer proxy listening on port ${this.proxyPort}`);
-          resolve(this.proxyPort);
-        } else {
-          resolve(this.currentPort);
-        }
-      });
-
-      this.proxyServer.on('error', (e) => {
-        this.outputChannel.appendLine(`[MangaBar] Proxy server error: ${e.message}`);
-        resolve(this.currentPort);
-      });
-    });
   }
 
   public stopProxyServer(): void {
@@ -714,6 +846,13 @@ export class ServerManager {
             const text = this.sanitizeLogOutput(chunk.toString());
             if (text) {
               this.outputChannel.append(text);
+              if (this.state === 'STARTING') {
+                if (text.includes('Running migrations') || text.includes('HikariDataSource') || text.includes('database')) {
+                  this.setStartupProgress(3, 'Database Migration', 'Migrating database tables & schema...', 75);
+                } else if (text.includes('Starting Javalin') || text.includes('Static file handler') || text.includes('Serving SPA') || text.includes('WebUI')) {
+                  this.setStartupProgress(4, 'Mounting Web Reader', 'Extracting and mounting WebUI reader...', 90);
+                }
+              }
             }
           });
         }
@@ -778,6 +917,7 @@ export class ServerManager {
   }
 
   public async startServer(): Promise<boolean> {
+    this.clearLastErrorDetail();
     if (this.state === 'RUNNING' && this.childProcess) {
       return true;
     }
@@ -852,10 +992,14 @@ export class ServerManager {
       }
     }
 
+    this.setState('STARTING');
+    this.setStartupProgress(1, 'Verifying Environment', 'Checking network ports & local resources...', 10);
+
     const extensionRoot = this.context.extensionPath;
     const workspaceRoot = this.configManager.getWorkspaceRoot();
 
     // STEP 3: Verify server jar is present (with user confirmation & custom server option)
+    this.setStartupProgress(2, 'Verifying Server Engine', 'Checking server JAR binary...', 20);
     if (!isServerJarInstalled(extensionRoot, workspaceRoot)) {
       const choice = await vscode.window.showInformationMessage(
         'MangaBar requires the server engine binary (~60 MB). Would you like to automatically download it, or connect to an existing server?',
@@ -908,6 +1052,13 @@ export class ServerManager {
                   increment,
                   message: `${downMB} MB / ${totalMB} MB (${percent}%)`,
                 });
+                this.setStartupProgress(
+                  2,
+                  'Downloading Server Engine',
+                  `Downloading engine binary: ${downMB} MB / ${totalMB} MB (${percent}%)`,
+                  Math.round(20 + percent * 0.25),
+                  { downloadedMB: downMB, totalMB, percent }
+                );
               },
               this.configManager.getServerDownloadUrl()
             );
@@ -916,21 +1067,39 @@ export class ServerManager {
         this.outputChannel.appendLine('[MangaBar] Binary downloaded successfully.');
       } catch (err: any) {
         this.setState('ERROR');
-        vscode.window.showErrorMessage(`Failed to download MangaBar server engine: ${err.message}`);
-        this.outputChannel.appendLine(`[MangaBar Error] Download error: ${err.message}`);
+        const isNet = /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|fetch failed|getaddrinfo|network|status code 404/i.test(err.message || '');
+        this.lastErrorDetail = isNet
+          ? 'Internet connection required for initial setup. Please connect to Wi-Fi/Internet and click Retry Launch.'
+          : `Failed to download MangaBar server engine: ${err.message}`;
+        vscode.window.showErrorMessage(this.lastErrorDetail);
+        this.outputChannel.appendLine(`[MangaBar Error] ${this.lastErrorDetail}`);
         return false;
       }
     }
+    this.setStartupProgress(2, 'Server Engine Ready', 'Server binary verified.', 40);
 
     // STEP 4: Resolve Java runtime
+    this.setStartupProgress(1, 'Resolving Java Runtime', 'Locating Java 21 environment...', 42);
     let javaCmd = 'java';
     try {
       javaCmd = await resolveJavaExecutable(extensionRoot, workspaceRoot, (percent, downMB, totalMB) => {
         this.outputChannel.appendLine(`[MangaBar] Downloading Java runtime: ${downMB}/${totalMB} MB (${percent}%)`);
+        this.setStartupProgress(
+          1,
+          'Downloading Java Runtime',
+          `Downloading portable JRE 21: ${downMB} MB / ${totalMB} MB (${percent}%)`,
+          Math.round(10 + percent * 0.3),
+          { downloadedMB: downMB, totalMB, percent }
+        );
       });
       this.outputChannel.appendLine(`[MangaBar] Using Java runtime: ${javaCmd}`);
+      this.setStartupProgress(1, 'Java Runtime Ready', `Using Java: ${path.basename(javaCmd)}`, 50);
     } catch (javaErr: any) {
       this.outputChannel.appendLine(`[MangaBar] Java resolution notice: ${javaErr.message}`);
+      const isNet = /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|fetch failed|getaddrinfo|network/i.test(javaErr.message || '');
+      if (isNet) {
+        this.lastErrorDetail = 'Internet connection required to download Java 21 runtime. Please connect to Wi-Fi/Internet and click Retry Launch.';
+      }
     }
 
     const rawJarPath = getServerJarPath(extensionRoot, workspaceRoot);
@@ -945,10 +1114,18 @@ export class ServerManager {
     this.outputChannel.appendLine(`[MangaBar] Data directory: ${dataDir}`);
 
     this.setState('STARTING');
+    this.setStartupProgress(3, 'Launching Server Process', `Spawning server daemon on port ${this.currentPort}...`, 55);
 
     const javaArgs = [
-      '-Xmx512m',
-      '-Xms64m',
+      '-Xmx192m',
+      '-Xms32m',
+      '-XX:+UseSerialGC',
+      '-XX:TieredStopAtLevel=1',
+      '-XX:MinHeapFreeRatio=10',
+      '-XX:MaxHeapFreeRatio=20',
+      '-XX:MaxMetaspaceSize=96m',
+      '-XX:+UseCompressedOops',
+      '-XX:+UseCompressedClassPointers',
       '--add-opens=java.base/java.lang=ALL-UNNAMED',
       '--add-opens=java.base/java.util=ALL-UNNAMED',
       '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
@@ -961,7 +1138,9 @@ export class ServerManager {
       '-Dsuwayomi.tachidesk.config.server.systemTrayEnabled=false',
       '-Dsuwayomi.tachidesk.config.server.kcefEnabled=false',
       '-Dsuwayomi.tachidesk.config.server.webUIInterface=BROWSER',
+      '-Dsuwayomi.tachidesk.config.server.webUIChannel=BUNDLED',
       '-Dsuwayomi.tachidesk.config.server.webUIUpdateCheckInterval=0.0',
+      '-Dsuwayomi.tachidesk.config.server.globalUpdateInterval=0.0',
     ];
 
     const patchedClasses = getPatchedClassesDir(extensionRoot, workspaceRoot);
@@ -990,10 +1169,20 @@ export class ServerManager {
 
       this.startLogTailing(dataDir);
 
+      const inspectProgress = (txt: string) => {
+        if (this.state !== 'STARTING') return;
+        if (txt.includes('Running migrations') || txt.includes('HikariDataSource') || txt.includes('database')) {
+          this.setStartupProgress(3, 'Database Migration', 'Migrating database tables & schema...', 75);
+        } else if (txt.includes('Starting Javalin') || txt.includes('Static file handler') || txt.includes('Serving SPA') || txt.includes('WebUI')) {
+          this.setStartupProgress(4, 'Mounting Web Reader', 'Extracting and mounting WebUI reader...', 90);
+        }
+      };
+
       this.childProcess.stdout?.on('data', (data) => {
         const text = this.sanitizeLogOutput(data.toString());
         if (text) {
           this.outputChannel.append(text);
+          inspectProgress(text);
         }
       });
 
@@ -1003,6 +1192,7 @@ export class ServerManager {
         const text = this.sanitizeLogOutput(raw);
         if (text) {
           this.outputChannel.append(text);
+          inspectProgress(text);
         }
       });
 
@@ -1011,6 +1201,7 @@ export class ServerManager {
           `[MangaBar] Process exited with code: ${code}, signal: ${signal}`
         );
         this.stopLogTailing();
+        this.currentStartupProgress = null;
         processExitedEarly = true;
         exitCodeResult = code;
         this.childProcess = null;
@@ -1024,14 +1215,24 @@ export class ServerManager {
       this.childProcess.on('error', (err) => {
         this.outputChannel.appendLine(`[MangaBar] Process spawn error: ${err.message}`);
         this.stopLogTailing();
+        this.currentStartupProgress = null;
         this.setState('ERROR');
-        vscode.window.showErrorMessage(
-          `Failed to launch MangaBar Server Engine. Error: ${err.message}`
-        );
+        if (!this.lastErrorDetail) {
+          if (err.message.includes('ENOENT') || err.message.includes('not found')) {
+            this.lastErrorDetail = 'Java 21 runtime not found. Connect to the internet to download portable Java or install Java 21.';
+          } else {
+            this.lastErrorDetail = `Failed to launch MangaBar Server Engine: ${err.message}`;
+          }
+        }
+        vscode.window.showErrorMessage(this.lastErrorDetail);
       });
     } catch (err: any) {
+      this.currentStartupProgress = null;
       this.setState('ERROR');
-      vscode.window.showErrorMessage(`Failed to spawn server process: ${err.message}`);
+      if (!this.lastErrorDetail) {
+        this.lastErrorDetail = `Failed to spawn server process: ${err.message}`;
+      }
+      vscode.window.showErrorMessage(this.lastErrorDetail);
       return false;
     }
 
@@ -1044,12 +1245,14 @@ export class ServerManager {
     );
 
     if (ready) {
+      this.setStartupProgress(4, 'Server Ready', 'Web Reader mounted successfully.', 100);
       await this.startProxyServer();
       this.setState('RUNNING');
       this.resetIdleTimer();
       this.outputChannel.appendLine(`[MangaBar] Server is READY at ${this.getServerUrl()}`);
       return true;
     } else {
+      this.currentStartupProgress = null;
       this.outputChannel.appendLine(
         '[MangaBar Error] Server startup failed or timed out. Force-terminating process to release database locks...'
       );
@@ -1075,12 +1278,6 @@ export class ServerManager {
   ): Promise<boolean> {
     const startTime = Date.now();
     const rawUrl = this.getRawServerUrl();
-    const probeUrls = [
-      `${rawUrl}/api/graphql`,
-      `${rawUrl}/api/v1`,
-      `${rawUrl}/api/v1/system/about`,
-      `${rawUrl}/`,
-    ];
 
     let lastProgressLog = 0;
     while (Date.now() - startTime < timeoutMs) {
@@ -1097,14 +1294,45 @@ export class ServerManager {
       if (elapsed > 0 && elapsed % 10 === 0 && Date.now() - lastProgressLog > 5000) {
         lastProgressLog = Date.now();
         this.outputChannel.appendLine(`[MangaBar] Engine initializing & database migrating... (${elapsed}s elapsed)`);
+        this.setStartupProgress(3, 'Engine Initializing', `Database migrating (${elapsed}s elapsed)...`, Math.min(88, 65 + elapsed));
       }
 
-      for (const url of probeUrls) {
+      // 1. Primary check: WebUI root must return 200 and serve HTML (not Javalin 404 "Endpoint GET / not found")
+      try {
+        const isWebUIReady = await new Promise<boolean>((resolve) => {
+          const req = http.get(`${rawUrl}/`, { timeout: 2000 }, (res) => {
+            let data = '';
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => {
+              const isHtml =
+                (res.statusCode === 200 || res.statusCode === 302) &&
+                (data.includes('<html') || data.includes('<!doctype') || data.includes('<div id="root">')) &&
+                !data.includes('Endpoint GET / not found');
+              resolve(isHtml);
+            });
+          });
+          req.on('error', () => resolve(false));
+          req.on('timeout', () => {
+            req.destroy();
+            resolve(false);
+          });
+        });
+
+        if (isWebUIReady) {
+          return true;
+        }
+      } catch {
+        // continue polling
+      }
+
+      // 2. Fallback check: If after 45s the static route hasn't mounted, check if core API is alive
+      if (elapsed >= 45) {
         try {
-          const isUp = await new Promise<boolean>((resolve) => {
-            const req = http.get(url, { timeout: 1500 }, (res) => {
+          const isApiUp = await new Promise<boolean>((resolve) => {
+            const req = http.get(`${rawUrl}/api/v1/system/about`, { timeout: 1500 }, (res) => {
               res.resume();
-              resolve(res.statusCode === 200 || res.statusCode === 302);
+              resolve(res.statusCode === 200);
             });
             req.on('error', () => resolve(false));
             req.on('timeout', () => {
@@ -1112,14 +1340,12 @@ export class ServerManager {
               resolve(false);
             });
           });
-
-          if (isUp) {
+          if (isApiUp) {
             return true;
           }
-        } catch {
-          // continue polling
-        }
+        } catch {}
       }
+
       await new Promise((r) => setTimeout(r, 1000));
     }
 
@@ -1157,6 +1383,7 @@ export class ServerManager {
       await new Promise((r) => setTimeout(r, 150));
     }
 
+    this.currentStartupProgress = null;
     this.stopProxyServer();
     this.setState('STOPPED');
     this.outputChannel.appendLine('[MangaBar] Server stopped cleanly and port released.');
@@ -1209,5 +1436,6 @@ export class ServerManager {
     this.stopServer();
     this.outputChannel.dispose();
     this.stateChangeEmitter.dispose();
+    this.startupProgressEmitter.dispose();
   }
 }

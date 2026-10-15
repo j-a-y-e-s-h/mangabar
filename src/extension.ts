@@ -185,6 +185,35 @@ export function activate(context: vscode.ExtensionContext) {
           }
         }
       }
+    }),
+
+    vscode.commands.registerCommand('mangabar.configureSleepTimeout', async () => {
+      const current = configManager.getIdleSleepTimeoutMinutes();
+      const input = await vscode.window.showInputBox({
+        title: 'MangaBar: Configure Auto-Sleep Timeout',
+        prompt: 'Enter minutes of idle inactivity before server sleeps to save RAM (0 to disable). Server will never sleep while Reader tab or Sidebar is open.',
+        value: current.toString(),
+        validateInput: (val) => {
+          const num = parseInt(val, 10);
+          if (isNaN(num) || num < 0) {
+            return 'Please enter a valid non-negative number (e.g. 5, 10, 15, or 0 to keep server running continuously).';
+          }
+          return null;
+        },
+      });
+
+      if (input !== undefined) {
+        const minutes = parseInt(input, 10);
+        await configManager.setIdleSleepTimeoutMinutes(minutes);
+        if (serverManager) {
+          serverManager.resetIdleTimer();
+        }
+        if (minutes === 0) {
+          vscode.window.showInformationMessage('MangaBar: Auto-sleep disabled. Server will remain running while IDE is open.');
+        } else {
+          vscode.window.showInformationMessage(`MangaBar: Auto-sleep timeout set to ${minutes} minutes of inactivity.`);
+        }
+      }
     })
   );
 
